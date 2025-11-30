@@ -255,10 +255,11 @@ export const UserList: React.FC<UserListProps> = ({ users, onUpdateUser, onAddUs
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Senha</label>
                             <input 
                                 type="password"
-                                value={newUser.password}
+                                // Removed value={newUser.password} to hide from DOM inspector
                                 onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                                 placeholder="******"
+                                autoComplete="new-password"
                             />
                         </div>
                     </div>
