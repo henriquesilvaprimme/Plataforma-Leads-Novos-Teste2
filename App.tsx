@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Dashboard } from './components/Dashboard';
 import { LeadList } from './components/LeadList';
 import { RenewalList } from './components/RenewalList';
@@ -8,7 +9,7 @@ import { UserList } from './components/UserList';
 import { Ranking } from './components/Ranking';
 import { Login } from './components/Login';
 import { Lead, LeadStatus, User } from './types';
-import { LayoutDashboard, Users, RefreshCw, CheckCircle, FileText, UserCog, Trophy, AlertTriangle, Power } from './components/Icons';
+import { LayoutDashboard, Users, RefreshCw, CheckCircle, FileText, UserCog, Trophy, Power } from './components/Icons';
 import { 
   subscribeToCollection, 
   subscribeToRenovationsTotal, 
@@ -18,10 +19,10 @@ import {
   isFirebaseConfigured 
 } from './services/firebase';
 
-type View = 'dashboard' | 'leads' | 'renewals' | 'renewed' | 'insured' | 'users' | 'ranking';
-
 export default function App() {
-  const [currentView, setCurrentView] = useState<View>('dashboard');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentPath = location.pathname;
   
   // COLEÇÕES DO FIREBASE
   const [leadsCollection, setLeadsCollection] = useState<Lead[]>([]); 
@@ -32,8 +33,20 @@ export default function App() {
   // STATS
   const [manualRenewalTotal, setManualRenewalTotal] = useState<number>(0);
 
-  // USUÁRIO ATUAL
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // USUÁRIO ATUAL - Persistência no LocalStorage
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+      const savedUser = localStorage.getItem('currentUser');
+      return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  // Salvar usuário no localStorage sempre que mudar
+  useEffect(() => {
+      if (currentUser) {
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      } else {
+          localStorage.removeItem('currentUser');
+      }
+  }, [currentUser]);
 
   // === FIREBASE SUBSCRIPTIONS ===
   useEffect(() => {
@@ -61,7 +74,7 @@ export default function App() {
         addDataToCollection('renovados', newLead);
     } else if (newLead.id.includes('renewal_copy')) {
         addDataToCollection('renovacoes', newLead);
-    } else if (newLead.insuranceType === 'Renovação' && currentView === 'renewals') {
+    } else if (newLead.insuranceType === 'Renovação' && currentPath.includes('renovacoes')) {
         addDataToCollection('renovacoes', newLead);
     } else {
         addDataToCollection('leads', newLead);
@@ -69,13 +82,14 @@ export default function App() {
   };
 
   const handleUpdateLead = (updatedLead: Lead) => {
-      if (currentView === 'leads') {
+      if (currentPath.includes('leads')) {
           updateDataInCollection('leads', updatedLead.id, updatedLead);
-      } else if (currentView === 'renewals' || currentView === 'insured') {
+      } else if (currentPath.includes('renovacoes') || currentPath.includes('segurados')) {
           updateDataInCollection('renovacoes', updatedLead.id, updatedLead);
-      } else if (currentView === 'renewed') {
+      } else if (currentPath.includes('renovados')) {
           updateDataInCollection('renovados', updatedLead.id, updatedLead);
       } else {
+          // Fallback search across collections
           if (leadsCollection.find(l => l.id === updatedLead.id)) updateDataInCollection('leads', updatedLead.id, updatedLead);
           else if (renewalsCollection.find(l => l.id === updatedLead.id)) updateDataInCollection('renovacoes', updatedLead.id, updatedLead);
           else if (renewedCollection.find(l => l.id === updatedLead.id)) updateDataInCollection('renovados', updatedLead.id, updatedLead);
@@ -93,22 +107,31 @@ export default function App() {
   const isRenovations = !isAdmin && currentUser?.isRenovations;
   const isComum = !isAdmin && !isRenovations;
 
-  // Redirecionamento de segurança se a view atual não for permitida
+  // Redirecionamento de segurança se a rota atual não for permitida
   useEffect(() => {
     if (!currentUser) return;
     
-    if (isComum && !['dashboard', 'leads', 'ranking'].includes(currentView)) {
-        setCurrentView('dashboard');
+    // Lista de rotas permitidas por perfil
+    if (isComum) {
+        const allowed = ['/dashboard', '/leads', '/ranking'];
+        if (!allowed.some(path => currentPath.startsWith(path)) && currentPath !== '/') {
+            navigate('/dashboard');
+        }
     }
-    // Adicionado 'renewed' para usuários de renovação
-    if (isRenovations && !['dashboard', 'renewals', 'renewed'].includes(currentView)) {
-        setCurrentView('dashboard');
+    if (isRenovations) {
+        const allowed = ['/dashboard', '/renovacoes', '/renovados'];
+        if (!allowed.some(path => currentPath.startsWith(path)) && currentPath !== '/') {
+            navigate('/dashboard');
+        }
     }
-  }, [currentView, isComum, isRenovations, currentUser]);
+  }, [currentPath, isComum, isRenovations, currentUser, navigate]);
 
   // LOGIN SCREEN
   if (!currentUser) {
-      return <Login users={usersCollection} onLogin={setCurrentUser} />;
+      return <Login users={usersCollection} onLogin={(user) => {
+          setCurrentUser(user);
+          navigate('/dashboard');
+      }} />;
   }
 
   return (
@@ -132,8 +155,8 @@ export default function App() {
         <nav className="flex-1 p-4 space-y-2">
           {/* DASHBOARD: Todos veem */}
           <button 
-            onClick={() => { setCurrentView('dashboard'); }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentView === 'dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            onClick={() => navigate('/dashboard')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentPath.startsWith('/dashboard') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
           >
             <LayoutDashboard className="w-5 h-5" />
             <span>Dashboard</span>
@@ -142,8 +165,8 @@ export default function App() {
           {/* MEUS LEADS: Admin ou Comum */}
           {(isAdmin || isComum) && (
             <button 
-                onClick={() => { setCurrentView('leads'); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentView === 'leads' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                onClick={() => navigate('/leads')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentPath.startsWith('/leads') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             >
                 <Users className="w-5 h-5" />
                 <span>Meus Leads</span>
@@ -153,8 +176,8 @@ export default function App() {
           {/* RENOVAÇÕES: Admin ou Renovações */}
           {(isAdmin || isRenovations) && (
             <button 
-                onClick={() => { setCurrentView('renewals'); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentView === 'renewals' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                onClick={() => navigate('/renovacoes')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentPath.startsWith('/renovacoes') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             >
                 <RefreshCw className="w-5 h-5" />
                 <span>Renovações</span>
@@ -164,8 +187,8 @@ export default function App() {
           {/* RENOVADOS: Admin ou Renovações */}
           {(isAdmin || isRenovations) && (
             <button 
-                onClick={() => { setCurrentView('renewed'); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentView === 'renewed' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                onClick={() => navigate('/renovados')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentPath.startsWith('/renovados') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             >
                 <CheckCircle className="w-5 h-5" />
                 <span>Renovados</span>
@@ -175,8 +198,8 @@ export default function App() {
           {/* SEGURADOS: Admin Apenas */}
           {isAdmin && (
             <button 
-                onClick={() => { setCurrentView('insured'); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentView === 'insured' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                onClick={() => navigate('/segurados')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentPath.startsWith('/segurados') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             >
                 <FileText className="w-5 h-5" />
                 <span>Segurados</span>
@@ -186,8 +209,8 @@ export default function App() {
           {/* RANKING: Admin ou Comum */}
           {(isAdmin || isComum) && (
             <button 
-                onClick={() => { setCurrentView('ranking'); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentView === 'ranking' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                onClick={() => navigate('/ranking')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentPath.startsWith('/ranking') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             >
                 <Trophy className="w-5 h-5" />
                 <span>Ranking</span>
@@ -197,8 +220,8 @@ export default function App() {
           {/* USUÁRIOS: Admin Apenas */}
           {isAdmin && (
             <button 
-                onClick={() => { setCurrentView('users'); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentView === 'users' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                onClick={() => navigate('/usuarios')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentPath.startsWith('/usuarios') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
             >
                 <UserCog className="w-5 h-5" />
                 <span>Usuários</span>
@@ -219,7 +242,11 @@ export default function App() {
               </p>
             </div>
             <button 
-                onClick={() => setCurrentUser(null)} 
+                onClick={() => {
+                    setCurrentUser(null);
+                    localStorage.removeItem('currentUser');
+                    navigate('/');
+                }} 
                 className="text-slate-400 hover:text-white"
                 title="Sair"
             >
@@ -233,78 +260,95 @@ export default function App() {
       <main className="flex-1 flex flex-col h-full overflow-hidden relative pt-6">
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 md:hidden">
             <h1 className="font-bold text-gray-800">Leads AI</h1>
-            <button onClick={() => setCurrentUser(null)} className="text-red-500 text-sm font-bold">Sair</button>
+            <button onClick={() => { setCurrentUser(null); navigate('/'); }} className="text-red-500 text-sm font-bold">Sair</button>
         </header>
 
         <div className="flex-1 overflow-auto p-6 md:p-8 relative bg-gray-100">
-            {currentView === 'dashboard' && (
-                <Dashboard 
-                    newLeadsData={leadsCollection}
-                    renewalLeadsData={[...renewalsCollection, ...renewedCollection]} 
-                    manualRenewalTotal={manualRenewalTotal}
-                    onUpdateRenewalTotal={handleUpdateRenovationsTotal}
-                    currentUser={currentUser}
-                />
-            )}
-            
-            {currentView === 'leads' && (
-                <div className="h-full">
-                    <LeadList 
-                        leads={leadsCollection} 
-                        users={usersCollection}
-                        onSelectLead={() => {}}
-                        onUpdateLead={handleUpdateLead}
-                        onAddLead={handleAddLead}
+            <Routes>
+                <Route path="/dashboard" element={
+                    <Dashboard 
+                        newLeadsData={leadsCollection}
+                        renewalLeadsData={[...renewalsCollection, ...renewedCollection]} 
+                        manualRenewalTotal={manualRenewalTotal}
+                        onUpdateRenewalTotal={handleUpdateRenovationsTotal}
                         currentUser={currentUser}
                     />
-                </div>
-            )}
+                } />
+                
+                <Route path="/leads" element={
+                    (isAdmin || isComum) ? (
+                        <div className="h-full">
+                            <LeadList 
+                                leads={leadsCollection} 
+                                users={usersCollection}
+                                onSelectLead={() => {}}
+                                onUpdateLead={handleUpdateLead}
+                                onAddLead={handleAddLead}
+                                currentUser={currentUser}
+                            />
+                        </div>
+                    ) : <Navigate to="/dashboard" />
+                } />
 
-            {currentView === 'renewals' && (
-                <div className="h-full">
-                    <RenewalList 
-                        leads={renewalsCollection} 
-                        users={usersCollection}
-                        onUpdateLead={handleUpdateLead} 
-                        onAddLead={handleAddLead} 
-                        currentUser={currentUser}
-                    />
-                </div>
-            )}
+                <Route path="/renovacoes" element={
+                    (isAdmin || isRenovations) ? (
+                        <div className="h-full">
+                            <RenewalList 
+                                leads={renewalsCollection} 
+                                users={usersCollection}
+                                onUpdateLead={handleUpdateLead} 
+                                onAddLead={handleAddLead} 
+                                currentUser={currentUser}
+                            />
+                        </div>
+                    ) : <Navigate to="/dashboard" />
+                } />
 
-            {currentView === 'renewed' && (
-                <div className="h-full">
-                    <RenewedList 
-                        leads={renewedCollection} 
-                        onUpdateLead={handleUpdateLead} 
-                    />
-                </div>
-            )}
+                <Route path="/renovados" element={
+                    (isAdmin || isRenovations) ? (
+                        <div className="h-full">
+                            <RenewedList 
+                                leads={renewedCollection} 
+                                onUpdateLead={handleUpdateLead} 
+                            />
+                        </div>
+                    ) : <Navigate to="/dashboard" />
+                } />
 
-            {currentView === 'insured' && (
-                <div className="h-full">
-                    <InsuredList 
-                        leads={renewalsCollection} 
-                        onUpdateLead={handleUpdateLead} 
-                    />
-                </div>
-            )}
+                <Route path="/segurados" element={
+                    isAdmin ? (
+                        <div className="h-full">
+                            <InsuredList 
+                                leads={renewalsCollection} 
+                                onUpdateLead={handleUpdateLead} 
+                            />
+                        </div>
+                    ) : <Navigate to="/dashboard" />
+                } />
 
-            {currentView === 'ranking' && (
-                <div className="h-full">
-                    <Ranking leads={allLeadsForRanking} users={usersCollection} />
-                </div>
-            )}
+                <Route path="/ranking" element={
+                    (isAdmin || isComum) ? (
+                        <div className="h-full">
+                            <Ranking leads={allLeadsForRanking} users={usersCollection} />
+                        </div>
+                    ) : <Navigate to="/dashboard" />
+                } />
 
-            {currentView === 'users' && (
-                <div className="h-full">
-                    <UserList 
-                        users={usersCollection} 
-                        onUpdateUser={handleUpdateUser} 
-                        onAddUser={handleAddUser} 
-                    />
-                </div>
-            )}
+                <Route path="/usuarios" element={
+                    isAdmin ? (
+                        <div className="h-full">
+                            <UserList 
+                                users={usersCollection} 
+                                onUpdateUser={handleUpdateUser} 
+                                onAddUser={handleAddUser} 
+                            />
+                        </div>
+                    ) : <Navigate to="/dashboard" />
+                } />
+
+                {/* Default Redirect */}
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
         </div>
       </main>
     </div>
