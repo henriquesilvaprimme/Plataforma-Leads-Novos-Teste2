@@ -39,13 +39,13 @@ export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
 
   return (
     <div 
-        className="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
+        className="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat relative animate-fade-in"
         style={{
             backgroundImage: "url('/background.png')"
         }}
     >
-        {/* Dark Overlay */}
-        <div className="absolute inset-0 bg-black/60 z-0"></div>
+        {/* Dark Overlay - Reduced opacity for lighter background */}
+        <div className="absolute inset-0 bg-black/20 z-0"></div>
 
         <div className="relative z-10 w-full max-w-md p-6">
             <div className="bg-blue-900/50 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-white/20">
