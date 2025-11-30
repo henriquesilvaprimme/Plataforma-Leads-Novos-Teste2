@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus, User, DealInfo } from '../types';
 import { Car, Phone, Calendar, DollarSign, Percent, CreditCard, Users, RefreshCw, Bell, Search, Shield } from './Icons';
@@ -218,12 +217,11 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
                     
                     <div className="flex justify-between items-start">
                         <div className="flex flex-col gap-0.5 w-full pr-6 relative">
-                            {/* Linha Combinada: Nome + Status + Agendamento */}
                             <div className="flex items-center flex-wrap gap-2">
                                 <h3 className="font-bold text-base text-gray-900 leading-tight">{lead.name}</h3>
                                 
                                 {!isEditingStatus && lead.status !== LeadStatus.NEW && (
-                                    <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${getStatusColor(lead.status)}`}>
+                                    <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(lead.status)}`}>
                                         {lead.status}
                                     </span>
                                 )}
@@ -338,14 +336,14 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
                             </label>
                             
                             {!isAdmin ? (
-                                <div className="flex items-center justify-between bg-gray-50 p-1.5 rounded border border-gray-200">
-                                    <span className="text-xs font-bold text-gray-700 truncate mr-2">
+                                <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded border border-gray-200 w-fit max-w-full">
+                                    <span className="text-xs font-bold text-gray-700 truncate">
                                         Atribuído para: <span className="text-indigo-700">{lead.assignedTo || 'Ninguém'}</span>
                                     </span>
                                 </div>
                             ) : (
                                 isEditingUser || !selectedUser ? (
-                                    <div className="flex gap-1">
+                                    <div className="flex gap-1 w-fit max-w-full">
                                         <select 
                                             className="w-36 bg-white border border-gray-300 text-xs rounded px-2 py-1 focus:ring-1 focus:ring-indigo-500 outline-none shadow-sm text-gray-700 font-medium"
                                             value={selectedUser}
@@ -365,8 +363,8 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-between bg-gray-50 p-1.5 rounded border border-gray-200">
-                                        <span className="text-xs font-bold text-gray-700 truncate mr-2">
+                                    <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded border border-gray-200 w-fit max-w-full">
+                                        <span className="text-xs font-bold text-gray-700 truncate">
                                             Atribuído para: <span className="text-indigo-700">{lead.assignedTo || 'Ninguém'}</span>
                                         </span>
                                         <button 
@@ -561,7 +559,9 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
 export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdateLead, onAddLead, currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterDate, setFilterDate] = useState<string>(''); 
+  // Filtro de Data iniciando com o Mês Atual
+  const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().slice(0, 7)); 
+  
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -571,12 +571,10 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
     const term = searchTerm.toLowerCase();
     const name = lead.name || '';
     const phone = lead.phone || '';
-    const matchesSearch = name.toLowerCase().includes(term) || phone.includes(term);
-    
-    // Logica ajustada: Ocultar Perdidos se estiver vendo "Todos"
+    const matchesSearch = name.toLowerCase().includes(term) || phone.includes(term); 
     const matchesStatus = filterStatus === 'all' 
-        ? lead.status !== LeadStatus.LOST 
-        : lead.status === filterStatus;
+      ? lead.status !== LeadStatus.LOST // Se 'all', esconde perdidos
+      : lead.status === filterStatus; // Se selecionou 'LOST', mostra
 
     let matchesDate = true;
     if (filterDate && lead.createdAt) {
@@ -585,16 +583,13 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
         } else { matchesDate = true; }
     }
 
-    // Filtro de Permissão: Se Admin vê tudo, caso contrário só vê os atribuídos a si mesmo
     const isAssignedToUser = !currentUser || currentUser.isAdmin || lead.assignedTo === currentUser.name;
 
     return matchesSearch && matchesStatus && matchesDate && isAssignedToUser;
   }).sort((a, b) => {
-      // Ordenação por Vigência Final (Crescente: 01/12 -> 31/12)
-      // Se não tiver data, joga pro final
-      const dateA = new Date(a.dealInfo?.endDate || '9999-12-31').getTime();
-      const dateB = new Date(b.dealInfo?.endDate || '9999-12-31').getTime();
-      return dateA - dateB;
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return dateB - dateA;
   });
 
   const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
@@ -607,8 +602,12 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
     <div className="h-full flex flex-col">
       <div className="mb-6 flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
         <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-green-100 text-green-600 rounded-lg"><RefreshCw className="w-5 h-5" /></div>
-            <div><h2 className="text-lg font-bold text-gray-800">Renovações</h2></div>
+            <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
+                <RefreshCw className="w-5 h-5" />
+            </div>
+            <div>
+                <h2 className="text-lg font-bold text-gray-800">Renovações</h2>
+            </div>
         </div>
         
         <div className="flex flex-col md:flex-row gap-2 flex-wrap">
@@ -617,7 +616,7 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
             <input 
               type="text" 
               placeholder="Nome ou Telefone..." 
-              className="pl-9 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500 w-full"
+              className="pl-9 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 w-full"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -625,13 +624,13 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
           
           <input 
             type="month"
-            className="border border-gray-300 rounded text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-500 bg-white text-gray-700"
+            className="border border-gray-300 rounded text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white text-gray-700"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
           />
 
           <select 
-            className="border border-gray-300 rounded text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-500 bg-white cursor-pointer text-gray-700"
+            className="border border-gray-300 rounded text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white cursor-pointer text-gray-700"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -647,8 +646,8 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
         {paginatedLeads.map((lead) => (
             <RenewalCard 
                 key={lead.id} 
-                lead={lead} 
-                users={users}
+                lead={lead}
+                users={users} 
                 onUpdate={onUpdateLead}
                 onAdd={onAddLead}
                 currentUser={currentUser}
