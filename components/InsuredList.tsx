@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Lead, LeadStatus, Endorsement } from '../types';
-import { Search, FileText, Car, Calendar, DollarSign, Percent, CreditCard, Edit, XCircle, AlertTriangle } from './Icons';
+import { Search, FileText, Car, Edit, XCircle, AlertTriangle } from './Icons';
 
 interface InsuredListProps {
   leads: Lead[];
@@ -238,8 +238,9 @@ export const InsuredList: React.FC<InsuredListProps> = ({ leads, onUpdateLead })
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState('');
 
-  // 1. Filter Leads: Status CLOSED (or LOST so we can see cancelled ones) + Has Deal Info
-  const insuredLeads = leads.filter(l => (l.status === LeadStatus.CLOSED || l.status === LeadStatus.LOST) && l.dealInfo);
+  // 1. ATENÇÃO: Usando todos os leads passados na prop (que vêm da coleção renovacoes)
+  // Removido filtro de status para garantir que todos apareçam
+  const insuredLeads = leads; 
 
   // 2. Filter by Search and Date
   const filtered = insuredLeads.filter(l => {
@@ -255,11 +256,13 @@ export const InsuredList: React.FC<InsuredListProps> = ({ leads, onUpdateLead })
   const groupedLeads: { [key: string]: { clientName: string, phone: string, leads: Lead[] } } = {};
   
   filtered.forEach(lead => {
-     const key = lead.phone || 'no-phone-' + lead.id;
+     // Agrupamento por telefone. Se não tiver telefone, usa ID para não perder o lead.
+     const key = lead.phone || `no-phone-${lead.id}`;
+     
      if (!groupedLeads[key]) {
         groupedLeads[key] = {
-           clientName: lead.name,
-           phone: lead.phone,
+           clientName: lead.name || 'Cliente Sem Nome',
+           phone: lead.phone || 'Sem Telefone',
            leads: []
         };
      }
