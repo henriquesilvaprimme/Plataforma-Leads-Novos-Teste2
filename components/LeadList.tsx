@@ -609,7 +609,11 @@ export const LeadList: React.FC<LeadListProps> = ({ leads, users, onSelectLead, 
             matchesDate = lead.createdAt.startsWith(filterDate);
         } else { matchesDate = true; }
     }
-    return matchesSearch && matchesStatus && matchesDate;
+
+    // Filtro de Permissão: Se Admin vê tudo, caso contrário só vê os atribuídos a si mesmo
+    const isAssignedToUser = !currentUser || currentUser.isAdmin || lead.assignedTo === currentUser.name;
+
+    return matchesSearch && matchesStatus && matchesDate && isAssignedToUser;
   }).sort((a, b) => {
     const dateA = new Date(a.createdAt).getTime();
     const dateB = new Date(b.createdAt).getTime();
