@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lead, LeadStatus, USERS_LIST, DealInfo } from '../types';
+import { Lead, LeadStatus, User, DealInfo } from '../types';
 import { Search, Plus, Car, Calendar, MapPin, Shield, Phone, BrainCircuit, Users, Bell, ChevronRight } from './Icons';
 
 interface LeadListProps {
   leads: Lead[];
+  users: User[];
   onSelectLead: (lead: Lead) => void;
   onUpdateLead: (lead: Lead) => void;
   onAddLead: (lead: Lead) => void;
@@ -73,7 +74,7 @@ const formatCreationDate = (dateString?: string) => {
     }
 };
 
-const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void; onAdd: (l: Lead) => void }> = ({ lead, onUpdate, onAdd }) => {
+const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => void; onAdd: (l: Lead) => void }> = ({ lead, users, onUpdate, onAdd }) => {
   // States for Edit Modes
   const [isEditingStatus, setIsEditingStatus] = useState(lead.status === LeadStatus.NEW);
   const [isEditingUser, setIsEditingUser] = useState(!lead.assignedTo);
@@ -382,8 +383,8 @@ const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void; onAdd: (l: L
                                 onChange={(e) => setSelectedUser(e.target.value)}
                             >
                                 <option value="">-- Selecione --</option>
-                                {USERS_LIST.map(u => (
-                                    <option key={u} value={u}>{u}</option>
+                                {users.filter(u => u.isActive).map(u => (
+                                    <option key={u.id} value={u.name}>{u.name}</option>
                                 ))}
                             </select>
                             <button 
@@ -669,7 +670,7 @@ const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void; onAdd: (l: L
   );
 };
 
-export const LeadList: React.FC<LeadListProps> = ({ leads, onSelectLead, onUpdateLead, onAddLead }) => {
+export const LeadList: React.FC<LeadListProps> = ({ leads, users, onSelectLead, onUpdateLead, onAddLead }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>(''); // YYYY-MM
@@ -819,7 +820,8 @@ export const LeadList: React.FC<LeadListProps> = ({ leads, onSelectLead, onUpdat
         {paginatedLeads.map((lead) => (
             <LeadCard 
                 key={lead.id} 
-                lead={lead} 
+                lead={lead}
+                users={users} 
                 onUpdate={onUpdateLead}
                 onAdd={onAddLead}
             />
@@ -947,8 +949,8 @@ export const LeadList: React.FC<LeadListProps> = ({ leads, onSelectLead, onUpdat
                                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
                              >
                                 <option value="">-- Selecione --</option>
-                                {USERS_LIST.map(u => (
-                                    <option key={u} value={u}>{u}</option>
+                                {users.filter(u => u.isActive).map(u => (
+                                    <option key={u.id} value={u.name}>{u.name}</option>
                                 ))}
                              </select>
                         </div>
