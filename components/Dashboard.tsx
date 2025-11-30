@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Lead, LeadStatus } from '../types';
+import { Lead, LeadStatus, User } from '../types';
 import { Users, LayoutDashboard, BrainCircuit, ChevronLeft, ChevronRight, Shield, DollarSign, Percent, CheckCircle, XCircle } from './Icons';
 
 interface DashboardProps {
@@ -9,6 +9,7 @@ interface DashboardProps {
   renewalLeadsData: Lead[]; 
   manualRenewalTotal: number;
   onUpdateRenewalTotal: (val: number) => void;
+  currentUser: User | null;
 }
 
 type Section = 'NEW' | 'RENEWAL';
@@ -28,18 +29,29 @@ interface Metrics {
   avgCommission: number;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeadsData, manualRenewalTotal, onUpdateRenewalTotal }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeadsData, manualRenewalTotal, onUpdateRenewalTotal, currentUser }) => {
   const [section, setSection] = useState<Section>('NEW');
   const [isEditingTotal, setIsEditingTotal] = useState(false);
   const [editTotalValue, setEditTotalValue] = useState('');
 
+  // Lock Sections based on User Role
+  useEffect(() => {
+    if (currentUser) {
+        if (!currentUser.isAdmin && !currentUser.isRenovations) {
+            // Usuario Comum -> Apenas Novo
+            setSection('NEW');
+        } else if (!currentUser.isAdmin && currentUser.isRenovations) {
+            // Usuario Renovações -> Apenas Renovações
+            setSection('RENEWAL');
+        }
+    }
+  }, [currentUser]);
+
+  const isAdmin = currentUser?.isAdmin;
+
   const calculateMetrics = (subset: Lead[], isRenewalSection: boolean): Metrics => {
-    // Se for seção de renovações, USAMOS ESTRITAMENTE O VALOR MANUAL DO BANCO
     let total = subset.length;
-    
     if (isRenewalSection) {
-        // Se estivermos em Renovações, o total é o valor manual, não importa se é 0 ou mil.
-        // É a "Carteira Total" definida pelo usuário.
         total = manualRenewalTotal;
     }
 
@@ -92,11 +104,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
 
   const metrics = section === 'NEW' ? calculateMetrics(newLeadsData, false) : calculateMetrics(renewalLeadsData, true);
 
-  // Data for Renewal Pie Chart
   const pieData = [
     { name: 'Renovados', value: metrics.sales, color: '#16a34a' }, 
     { name: 'Perdidos', value: metrics.lost, color: '#dc2626' }, 
-    // Pendentes agora respeita o total calculado (manual ou lista)
     { name: 'Pendentes', value: Math.max(0, metrics.total - metrics.sales - metrics.lost), color: '#e5e7eb' }, 
   ];
 
@@ -111,28 +121,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
          </h1>
          
          <div className="flex items-center gap-4 bg-gray-50 rounded-lg p-1 border border-gray-200">
-             <button 
-                onClick={() => setSection(section === 'NEW' ? 'RENEWAL' : 'NEW')}
-                className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-600"
-             >
-                <ChevronLeft className="w-5 h-5" />
-             </button>
+             {isAdmin && (
+                <button 
+                    onClick={() => setSection(section === 'NEW' ? 'RENEWAL' : 'NEW')}
+                    className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-600"
+                >
+                    <ChevronLeft className="w-5 h-5" />
+                </button>
+             )}
              <span className="font-bold text-sm text-gray-700 w-32 text-center uppercase tracking-wide">
                 {section === 'NEW' ? 'Seguro Novo' : 'Renovações'}
              </span>
-             <button 
-                onClick={() => setSection(section === 'NEW' ? 'RENEWAL' : 'NEW')}
-                className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-600"
-             >
-                <ChevronRight className="w-5 h-5" />
-             </button>
+             {isAdmin && (
+                <button 
+                    onClick={() => setSection(section === 'NEW' ? 'RENEWAL' : 'NEW')}
+                    className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-600"
+                >
+                    <ChevronRight className="w-5 h-5" />
+                </button>
+             )}
          </div>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-1">
         {/* KPI GRID */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {/* CARD 1: TOTAL & RATE */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
                 <div className="flex justify-between items-start z-10 relative">
                     <div className="w-full">
@@ -140,7 +153,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                             {section === 'NEW' ? 'Total de Leads' : 'Total Renovações'}
                         </p>
                         
-                        {/* Lógica de Edição Manual para Renovações */}
                         {section === 'RENEWAL' ? (
                             <div className="flex items-center gap-2">
                                 {isEditingTotal ? (
@@ -166,15 +178,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                                 ) : (
                                     <div className="flex items-center gap-3">
                                         <p className="text-3xl font-extrabold text-gray-900">{metrics.total}</p>
-                                        <button 
-                                            onClick={() => {
-                                                setEditTotalValue(metrics.total.toString());
-                                                setIsEditingTotal(true);
-                                            }}
-                                            className="text-[10px] uppercase font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded border border-indigo-200 transition-colors"
-                                        >
-                                            Alterar
-                                        </button>
+                                        {/* Só permite alterar total se for Admin ou Renovações */}
+                                        {(isAdmin || currentUser?.isRenovations) && (
+                                            <button 
+                                                onClick={() => {
+                                                    setEditTotalValue(metrics.total.toString());
+                                                    setIsEditingTotal(true);
+                                                }}
+                                                className="text-[10px] uppercase font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded border border-indigo-200 transition-colors"
+                                            >
+                                                Alterar
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -229,7 +244,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                 )}
             </div>
 
-            {/* CARD 2: SALES & LOST */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -261,7 +275,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                  </div>
             </div>
 
-            {/* CARD 3: CONTACT METRICS (Only for New) */}
             {section === 'NEW' && (
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                      <div className="space-y-4">
@@ -283,7 +296,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
             )}
         </div>
 
-        {/* INSURERS GRID */}
         <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
             <Shield className="w-5 h-5 text-gray-400" />
             Performance por Seguradora
@@ -307,7 +319,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
             </div>
         </div>
 
-        {/* FINANCIALS GRID */}
         <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-gray-400" />
             Financeiro
