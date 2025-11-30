@@ -44,9 +44,10 @@ export default function App() {
         setRenewalsCollection(data as Lead[]);
     });
 
-    // 3. Renovados
+    // 3. Renovados - FORÇAR STATUS FECHADO para garantir contagem no Dashboard
     const unsubscribeRenewed = subscribeToCollection('renovados', (data) => {
-        setRenewedCollection(data as Lead[]);
+        const fixedData = data.map(d => ({ ...d, status: LeadStatus.CLOSED }));
+        setRenewedCollection(fixedData as Lead[]);
     });
 
     // 4. Usuários
