@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { User } from '../types';
 import { Crown, Sparkles } from './Icons';
 
@@ -8,13 +8,16 @@ interface LoginProps {
 }
 
 export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const username = usernameRef.current?.value || '';
+    const password = passwordRef.current?.value || '';
 
     if (users.length === 0) {
         setError('Carregando sistema...');
@@ -70,22 +73,22 @@ export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
                             <label className="block text-xs font-bold text-blue-100 uppercase mb-1 ml-1">Usuário</label>
                             <input 
                                 type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                ref={usernameRef}
                                 className="w-full px-4 py-2.5 rounded-lg border border-white/30 bg-white/10 text-white placeholder-blue-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/50 outline-none transition-all font-medium"
                                 placeholder="Seu login..."
                                 required
+                                autoComplete="username"
                             />
                         </div>
                         <div className="text-left">
                             <label className="block text-xs font-bold text-blue-100 uppercase mb-1 ml-1">Senha</label>
                             <input 
                                 type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                ref={passwordRef}
                                 className="w-full px-4 py-2.5 rounded-lg border border-white/30 bg-white/10 text-white placeholder-blue-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/50 outline-none transition-all"
                                 placeholder="••••••"
                                 required
+                                autoComplete="current-password"
                             />
                         </div>
 
