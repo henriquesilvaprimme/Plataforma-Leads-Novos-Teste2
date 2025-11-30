@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Lead, LeadStatus } from '../types';
@@ -62,7 +61,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
             totalPremium += lead.dealInfo.netPremium;
             totalCommission += lead.dealInfo.commission;
 
-            const insurer = lead.dealInfo.insurer.toLowerCase();
+            // Proteção contra undefined insurer
+            const insurer = (lead.dealInfo.insurer || '').toLowerCase();
+            
             if (insurer.includes('porto')) portoCount++;
             else if (insurer.includes('azul')) azulCount++;
             else if (insurer.includes('itau') || insurer.includes('itaú')) itauCount++;
