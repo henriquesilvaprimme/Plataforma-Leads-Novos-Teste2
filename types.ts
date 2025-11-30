@@ -66,6 +66,7 @@ export interface User {
   email: string;
   isActive: boolean;
   isAdmin: boolean;
+  isRenovations?: boolean; // Novo campo
   avatarColor?: string;
 }
 
