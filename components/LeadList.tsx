@@ -538,10 +538,10 @@ const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ lead,
                                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white"
                              >
                                 <option value="">Selecione</option>
+                                <option value="Cartão Porto Seguro">Cartão Porto Seguro</option>
                                 <option value="Cartão de Crédito">Cartão de Crédito</option>
+                                <option value="Débito">Débito</option>
                                 <option value="Boleto">Boleto</option>
-                                <option value="Débito em Conta">Débito em Conta</option>
-                                <option value="Pix">Pix</option>
                              </select>
                         </div>
                     </div>
@@ -580,10 +580,9 @@ const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ lead,
                         >
                             <option value="">Selecione</option>
                             <option value="À Vista">À Vista</option>
-                            <option value="4x Sem Juros">4x Sem Juros</option>
-                            <option value="6x Sem Juros">6x Sem Juros</option>
-                            <option value="10x Sem Juros">10x Sem Juros</option>
-                            <option value="12x Com Juros">12x Com Juros</option>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
+                                <option key={num} value={`${num}x`}>{num}x</option>
+                            ))}
                         </select>
                     </div>
 
