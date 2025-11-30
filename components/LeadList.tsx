@@ -203,9 +203,8 @@ const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void; onAdd: (l: L
           id: `${lead.id}_renewal_copy_${Date.now()}`, // ID com marcador para App.tsx
           createdAt: new Date().toISOString(),
           insuranceType: 'Renovação',
-          // O status pode ser Novo para entrar no fluxo de renovação, ou manter Fechado se for apenas arquivo.
-          // Geralmente entra como Novo/Pendente para ser trabalhado no futuro, mas aqui enviaremos como cópia fiel.
-          // Se precisar mudar status, altere aqui. Vou manter os dados fiéis.
+          status: LeadStatus.NEW, // Reset status to NEW (Empty logic)
+          assignedTo: '',         // Reset responsible to Empty
       };
       onAdd(renewalCopy);
 
