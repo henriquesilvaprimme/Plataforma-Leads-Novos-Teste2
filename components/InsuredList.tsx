@@ -229,7 +229,9 @@ export const InsuredList: React.FC<InsuredListProps> = ({ leads, onUpdateLead })
   // 2. Filter by Search and Date
   const filtered = insuredLeads.filter(l => {
      const term = searchTerm.toLowerCase();
-     const matchesSearch = l.name.toLowerCase().includes(term) || l.phone.includes(term);
+     const name = l.name || '';
+     const phone = l.phone || '';
+     const matchesSearch = name.toLowerCase().includes(term) || phone.includes(term);
      const matchesDate = !filterDate || (l.dealInfo?.startDate && l.dealInfo.startDate.startsWith(filterDate));
      return matchesSearch && matchesDate;
   });
@@ -238,7 +240,7 @@ export const InsuredList: React.FC<InsuredListProps> = ({ leads, onUpdateLead })
   const groupedLeads: { [key: string]: { clientName: string, phone: string, leads: Lead[] } } = {};
   
   filtered.forEach(lead => {
-     const key = lead.phone;
+     const key = lead.phone || 'no-phone-' + lead.id;
      if (!groupedLeads[key]) {
         groupedLeads[key] = {
            clientName: lead.name,
