@@ -16,7 +16,7 @@ const firebaseConfig = {
 };
 
 // Exportação explícita da constante de verificação
-export const isFirebaseConfigured = firebaseConfig.apiKey !== "AIzaSyAMLDTyqFCQhfll1yPMxUtttgjIxCisIP4";
+export const isFirebaseConfigured = firebaseConfig.apiKey !== "";
 
 let app: any;
 let db: any;
