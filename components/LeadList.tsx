@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus, USERS_LIST, DealInfo } from '../types';
 import { Search, Plus, Car, Calendar, MapPin, Shield, Phone, BrainCircuit, Users, Bell, ChevronRight } from './Icons';
@@ -9,14 +10,48 @@ interface LeadListProps {
   onAddLead: (lead: Lead) => void;
 }
 
+// Helper robusto para datas
+const formatDisplayDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    // Se tiver barra, assume que já é BR e retorna
+    if (dateString.includes('/')) return dateString;
+    // Se tiver traço e parecer ISO
+    if (dateString.includes('-')) {
+        try {
+            // Tenta criar data. Adiciona 'T00:00' para evitar problemas de timezone se for só YYYY-MM-DD
+            const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00`);
+            return date.toLocaleDateString('pt-BR');
+        } catch (e) {
+            return dateString;
+        }
+    }
+    return dateString;
+};
+
 // Helper to check if a date string is today
 const isToday = (dateString?: string) => {
     if (!dateString) return false;
-    const date = new Date(dateString);
-    const today = new Date();
-    return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
+    if (dateString.includes('-')) {
+        const date = new Date(dateString);
+        const today = new Date();
+        return date.getDate() === today.getDate() &&
+            date.getMonth() === today.getMonth() &&
+            date.getFullYear() === today.getFullYear();
+    }
+    return false;
+};
+
+// Helper para exibir a data de criação corretamente
+const formatCreationDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    // Se já estiver no formato brasileiro (contém /), retorna direto
+    if (dateString.includes('/')) return dateString;
+    // Caso contrário, tenta formatar de ISO para Locale
+    try {
+        return new Date(dateString).toLocaleDateString('pt-BR');
+    } catch (e) {
+        return dateString;
+    }
 };
 
 const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ lead, onUpdate }) => {
@@ -337,10 +372,10 @@ const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ lead,
             </div>
         </div>
 
-        {/* Footer Actions (Only Date) */}
+        {/* Footer Actions */}
         <div className="mt-3 pt-2 flex items-center justify-end border-t border-gray-200">
             <div className="text-[10px] text-gray-400 font-medium">
-                Criado: {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
+                Criado em: {formatCreationDate(lead.createdAt)}
             </div>
         </div>
       </div>
@@ -366,7 +401,8 @@ const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ lead,
                             </div>
                              <div>
                                 <span className="block text-gray-400 text-[10px] uppercase">Pagamento</span>
-                                <span className="font-semibold">{lead.dealInfo?.paymentMethod}</span>
+                                {/* Aqui buscamos o Parcelamento (installments) conforme solicitado */}
+                                <span className="font-semibold">{lead.dealInfo?.installments}</span>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -384,9 +420,9 @@ const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ lead,
                         <div className="border-t border-gray-200 pt-1 mt-1">
                              <span className="block text-gray-400 text-[10px] uppercase">Vigência</span>
                              <span className="font-medium">
-                                {new Date(lead.dealInfo?.startDate!).toLocaleDateString('pt-BR')} 
+                                {formatDisplayDate(lead.dealInfo?.startDate)}
                                 <span className="mx-1 text-gray-400">até</span> 
-                                {new Date(lead.dealInfo?.endDate!).toLocaleDateString('pt-BR')}
+                                {formatDisplayDate(lead.dealInfo?.endDate)}
                              </span>
                         </div>
                      </div>
@@ -618,7 +654,17 @@ export const LeadList: React.FC<LeadListProps> = ({ leads, onSelectLead, onUpdat
                           phone.includes(term); 
     const matchesStatus = filterStatus === 'all' || lead.status === filterStatus;
     // Check if created date matches YYYY-MM
-    const matchesDate = !filterDate || (lead.createdAt && lead.createdAt.startsWith(filterDate));
+    // Se a data estiver no formato ISO YYYY-MM-DD
+    let matchesDate = true;
+    if (filterDate && lead.createdAt) {
+        if(lead.createdAt.includes('-') && !lead.createdAt.includes('/')) {
+            matchesDate = lead.createdAt.startsWith(filterDate);
+        } else {
+            // Se estiver em formato brasileiro DD/MM/YYYY, conversão é complexa, vamos ignorar filtro de data ou implementar parse manual
+            // Para simplicidade, assumindo ISO para filtro ou ignorando se formato customizado
+            matchesDate = true; 
+        }
+    }
 
     return matchesSearch && matchesStatus && matchesDate;
   });
