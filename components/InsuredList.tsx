@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Lead, LeadStatus, Endorsement } from '../types';
 import { Search, FileText, Car, Calendar, DollarSign, Percent, CreditCard, Edit, XCircle, AlertTriangle } from './Icons';
@@ -15,6 +16,20 @@ interface EndorsementForm {
   installments: string;
   startDate: string;
 }
+
+const formatDisplayDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    if (dateString.includes('/')) return dateString;
+    if (dateString.includes('-')) {
+        try {
+            const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00`);
+            return date.toLocaleDateString('pt-BR');
+        } catch (e) {
+            return dateString;
+        }
+    }
+    return dateString;
+};
 
 const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ lead, onUpdate }) => {
   const [showEndorseModal, setShowEndorseModal] = useState(false);
@@ -108,7 +123,7 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
                       <p className="font-bold text-yellow-800 border-b border-yellow-200 pb-1 mb-1">Detalhes do Endosso</p>
                       <p>Veículo: <b>{e.vehicleModel} ({e.vehicleYear})</b></p>
                       <p>Prêmio: <b>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.netPremium)}</b></p>
-                      <p>Vigência: <b>{new Date(e.startDate).toLocaleDateString('pt-BR')}</b></p>
+                      <p>Vigência: <b>{formatDisplayDate(e.startDate)}</b></p>
                    </div>
                 ))}
             </div>
@@ -120,11 +135,11 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
              <div className="flex items-center gap-4 text-xs">
                 <div className="flex items-center gap-1 text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">
                     <span className="font-bold">Vigência Inicial:</span>
-                    <span>{lead.dealInfo?.startDate ? new Date(lead.dealInfo.startDate).toLocaleDateString('pt-BR') : '-'}</span>
+                    <span>{formatDisplayDate(lead.dealInfo?.startDate)}</span>
                 </div>
                 <div className="flex items-center gap-1 text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100">
                     <span className="font-bold">Vigência Final:</span>
-                    <span>{lead.dealInfo?.endDate ? new Date(lead.dealInfo.endDate).toLocaleDateString('pt-BR') : '-'}</span>
+                    <span>{formatDisplayDate(lead.dealInfo?.endDate)}</span>
                 </div>
              </div>
 
