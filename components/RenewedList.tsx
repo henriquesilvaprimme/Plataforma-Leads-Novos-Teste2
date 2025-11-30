@@ -70,19 +70,19 @@ const RenewedCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void }> = ({ le
             ${cardStyle} rounded-xl shadow-sm border transition-all duration-300 w-full text-sm relative
             ${isSplitView ? 'md:grid md:grid-cols-2' : 'flex flex-col'}
         `}>
-            {/* REDUCED PADDING AND GAP */}
-            <div className={`p-3 flex flex-col justify-between gap-1 ${isSplitView ? `border-r ${borderColor}` : ''}`}>
-                <div className="flex flex-col gap-1">
+            {/* EXTREMELY REDUCED PADDING AND GAP FOR COMPACT HEIGHT */}
+            <div className={`p-2 flex flex-col justify-between gap-0.5 ${isSplitView ? `border-r ${borderColor}` : ''}`}>
+                <div className="flex flex-col gap-0.5">
                     
                     {/* Header: Name Only (Removed Status Badge and Insurance Type) */}
                     <div className="flex justify-between items-start">
                         <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-lg text-gray-900 leading-tight">{lead.name}</h3>
+                                <h3 className="font-bold text-base text-gray-900 leading-tight">{lead.name}</h3>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 min-h-[20px]">
+                            <div className="flex flex-wrap items-center gap-2 min-h-[16px]">
                                 {lead.status === LeadStatus.SCHEDULED && lead.scheduledDate && (
-                                    <span className="text-xs font-medium text-purple-700 flex items-center gap-1 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                                    <span className="text-[10px] font-medium text-purple-700 flex items-center gap-1 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
                                         <Calendar className="w-3 h-3" />
                                         {new Date(lead.scheduledDate).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' })}
                                     </span>
@@ -90,28 +90,28 @@ const RenewedCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void }> = ({ le
                             </div>
                         </div>
                         {isScheduledToday && (
-                            <div className="text-orange-600 bg-orange-50 p-1.5 rounded-md border border-orange-200 shadow-sm animate-pulse" title="Agendamento Hoje">
-                                <Bell className="w-4 h-4" />
+                            <div className="text-orange-600 bg-orange-50 p-1 rounded-md border border-orange-200 shadow-sm animate-pulse" title="Agendamento Hoje">
+                                <Bell className="w-3 h-3" />
                             </div>
                         )}
                     </div>
 
-                    <div className="flex flex-col gap-1 text-gray-800 text-sm">
+                    <div className="flex flex-col gap-0.5 text-gray-800 text-xs">
                         <div className="flex items-center gap-2">
-                            <Car className="w-4 h-4 text-gray-400 shrink-0" />
+                            <Car className="w-3 h-3 text-gray-400 shrink-0" />
                             <span className="font-semibold text-gray-900">{lead.vehicleModel}</span>
-                            <span className="text-xs text-gray-500">({lead.vehicleYear})</span>
+                            <span className="text-[10px] text-gray-500">({lead.vehicleYear})</span>
                         </div>
                         
                         <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                            <Phone className="w-3 h-3 text-gray-400 shrink-0" />
                             <span className="text-gray-700">{lead.phone}</span>
                         </div>
                         
                         {/* Adding Insurer as requested implicitly by 'count correctly' - helpful context */}
                         {lead.dealInfo?.insurer && (
                              <div className="flex items-center gap-2">
-                                <Shield className="w-4 h-4 text-gray-400 shrink-0" />
+                                <Shield className="w-3 h-3 text-gray-400 shrink-0" />
                                 <span className="text-gray-700 font-medium">Seguradora: 
                                     <span className="text-gray-900 ml-1">{lead.dealInfo.insurer}</span>
                                 </span>
@@ -119,7 +119,7 @@ const RenewedCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void }> = ({ le
                         )}
 
                         <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-gray-400 shrink-0" />
+                            <DollarSign className="w-3 h-3 text-gray-400 shrink-0" />
                             <span className="text-gray-700 font-medium">Prêmio: 
                                 <span className="text-gray-900 ml-1">
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.dealInfo?.netPremium || 0)}
@@ -127,30 +127,30 @@ const RenewedCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void }> = ({ le
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Percent className="w-4 h-4 text-gray-400 shrink-0" />
+                            <Percent className="w-3 h-3 text-gray-400 shrink-0" />
                             <span className="text-gray-700 font-medium">Comissão: 
                                 <span className="text-green-700 font-bold ml-1">{lead.dealInfo?.commission}%</span>
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <CreditCard className="w-4 h-4 text-gray-400 shrink-0" />
+                            <CreditCard className="w-3 h-3 text-gray-400 shrink-0" />
                             <span className="text-gray-700 font-medium">Pagamento/Parc: 
                                 <span className="text-gray-900 ml-1">{lead.dealInfo?.installments}</span>
                             </span>
                         </div>
                         
                         <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-blue-400 shrink-0" />
-                            <span className="text-gray-700 text-xs uppercase font-bold">Vigência Inicial:</span>
-                            <span className="text-blue-700 font-bold text-xs bg-blue-50 px-1.5 rounded border border-blue-100">
+                            <Calendar className="w-3 h-3 text-blue-400 shrink-0" />
+                            <span className="text-gray-700 text-[10px] uppercase font-bold">Vigência Inicial:</span>
+                            <span className="text-blue-700 font-bold text-[10px] bg-blue-50 px-1.5 rounded border border-blue-100">
                                 {formatDisplayDate(lead.dealInfo?.startDate)}
                             </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-indigo-400 shrink-0" />
-                            <span className="text-gray-700 text-xs uppercase font-bold">Vigência Final:</span>
-                            <span className="text-indigo-700 font-bold text-xs bg-indigo-50 px-1.5 rounded border border-indigo-100">
+                            <Calendar className="w-3 h-3 text-indigo-400 shrink-0" />
+                            <span className="text-gray-700 text-[10px] uppercase font-bold">Vigência Final:</span>
+                            <span className="text-indigo-700 font-bold text-[10px] bg-indigo-50 px-1.5 rounded border border-indigo-100">
                                 {formatDisplayDate(lead.dealInfo?.endDate)}
                             </span>
                         </div>
@@ -159,13 +159,13 @@ const RenewedCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void }> = ({ le
                     </div>
 
                     {/* RESPONSIBLE DISPLAY ONLY (No Edit) */}
-                    <div className="grid grid-cols-1 gap-1 pt-2 border-t border-green-200 mt-1">
+                    <div className="grid grid-cols-1 gap-0.5 pt-1 border-t border-green-200 mt-0.5">
                         <div className="flex flex-col gap-0.5">
                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                                 <Users className="w-3 h-3" /> Responsável
                             </label>
                             
-                            <div className="flex items-center justify-between bg-white/50 p-2 rounded border border-green-200">
+                            <div className="flex items-center justify-between bg-white/50 p-1.5 rounded border border-green-200">
                                 <span className="text-xs font-bold text-gray-700 truncate mr-2">
                                     Atribuído para: <span className="text-indigo-700">{lead.assignedTo || 'Ninguém'}</span>
                                 </span>
@@ -174,7 +174,7 @@ const RenewedCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void }> = ({ le
                     </div>
                 </div>
                  {/* Footer: Created At */}
-                <div className="mt-2 pt-2 flex items-center justify-end border-t border-green-200">
+                <div className="mt-1 pt-1 flex items-center justify-end border-t border-green-200">
                     <div className="text-[10px] text-gray-500 font-medium">
                         Criado em: {formatCreationDate(lead.createdAt)}
                     </div>
@@ -184,21 +184,21 @@ const RenewedCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void }> = ({ le
             {/* Split view kept only for reading notes if they exist, but disabled */}
             {isSplitView && (
                 <div className={`
-                    p-3 flex flex-col gap-3 animate-fade-in border-l ${borderColor}
+                    p-2 flex flex-col gap-2 animate-fade-in border-l ${borderColor}
                 `}>
-                    <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wide border-b border-gray-200 pb-2">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide border-b border-gray-200 pb-1">
                         Complemento
                     </h4>
                     
                     {needsDate && (
                         <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase mb-0.5 block">
                                 <span className="flex items-center gap-1"><Calendar className="w-3 h-3"/> Data e Hora</span>
                             </label>
                             <input 
                                 type="datetime-local" 
                                 disabled
-                                className="w-full border rounded px-3 py-2 text-xs bg-white text-gray-600 border-gray-200 cursor-not-allowed"
+                                className="w-full border rounded px-2 py-1 text-xs bg-white text-gray-600 border-gray-200 cursor-not-allowed"
                                 value={scheduleDate}
                             />
                         </div>
@@ -206,10 +206,10 @@ const RenewedCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void }> = ({ le
 
                     {needsObservation && (
                         <div className="flex-1 flex flex-col">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Observações</label>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase mb-0.5 block">Observações</label>
                             <textarea 
                                 disabled
-                                className="w-full border rounded px-3 py-3 text-xs bg-white text-gray-600 border-gray-200 cursor-not-allowed resize-none flex-1 shadow-inner"
+                                className="w-full border rounded px-2 py-2 text-xs bg-white text-gray-600 border-gray-200 cursor-not-allowed resize-none flex-1 shadow-inner"
                                 value={observation}
                             />
                         </div>
