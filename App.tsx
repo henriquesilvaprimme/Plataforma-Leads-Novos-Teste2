@@ -226,6 +226,7 @@ export default function App() {
                 <div className="h-full">
                     <LeadList 
                         leads={leadsCollection} 
+                        users={usersCollection}
                         onSelectLead={() => {}}
                         onUpdateLead={handleUpdateLead}
                         onAddLead={handleAddLead}
@@ -237,6 +238,7 @@ export default function App() {
                 <div className="h-full">
                     <RenewalList 
                         leads={renewalsCollection} 
+                        users={usersCollection}
                         onUpdateLead={handleUpdateLead} 
                         onAddLead={handleAddLead} 
                     />
