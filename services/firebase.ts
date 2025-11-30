@@ -1,4 +1,7 @@
+
+// @ts-ignore
 import { initializeApp } from "firebase/app";
+// @ts-ignore
 import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, setDoc, query, where } from "firebase/firestore";
 import { Lead, User } from "../types";
 
@@ -12,17 +15,33 @@ const firebaseConfig = {
   appId: "1:630294246900:web:764b52308c2ffa805175a1"
 };
 
-// Inicializa Firebase
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// Exportação explícita da constante de verificação
+export const isFirebaseConfigured = firebaseConfig.apiKey !== "AIzaSyAMLDTyqFCQhfll1yPMxUtttgjIxCisIP4";
 
-// Conversores de dados para garantir tipagem
+let app: any;
+let db: any;
+
+// Inicialização segura
+if (isFirebaseConfigured) {
+    try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        console.log("Firebase inicializado com sucesso.");
+    } catch (error) {
+        console.error("Erro ao inicializar Firebase:", error);
+        db = null;
+    }
+} else {
+    console.warn("Firebase não configurado. O app rodará em modo de visualização (Mock).");
+}
+
+// === FUNÇÕES AUXILIARES DE MAPEAMENTO ===
+
 export const mapDocumentToLead = (doc: any): Lead => {
     const data = doc.data();
     return {
         id: doc.id,
         ...data,
-        // Garante que datas venham como string se estiverem salvas de outra forma
         createdAt: data.createdAt || new Date().toISOString()
     } as Lead;
 };
@@ -35,48 +54,97 @@ export const mapDocumentToUser = (doc: any): User => {
     } as User;
 };
 
-// Funções de Assinatura (Real-time)
+// === FUNÇÕES DE LEITURA (REAL-TIME) ===
 
 export const subscribeToCollection = (collectionName: string, callback: (data: any[]) => void) => {
-    const q = query(collection(db, collectionName));
-    return onSnapshot(q, (snapshot) => {
-        const items = snapshot.docs.map(doc => {
-             if(collectionName === 'usuarios') return mapDocumentToUser(doc);
-             return mapDocumentToLead(doc);
+    if (!isFirebaseConfigured || !db) {
+        callback([]); 
+        return () => {};
+    }
+
+    try {
+        const q = query(collection(db, collectionName));
+        return onSnapshot(q, (snapshot: any) => {
+            const items = snapshot.docs.map((doc: any) => {
+                 if(collectionName === 'usuarios') return mapDocumentToUser(doc);
+                 return mapDocumentToLead(doc);
+            });
+            callback(items);
+        }, (error: any) => {
+            console.error(`Erro na coleção ${collectionName}:`, error);
+            callback([]);
         });
-        callback(items);
-    });
+    } catch (error) {
+        console.error(`Erro ao assinar ${collectionName}:`, error);
+        callback([]);
+        return () => {};
+    }
 };
 
 export const subscribeToRenovationsTotal = (callback: (total: number) => void) => {
-    const docRef = doc(db, 'totalrenovacoes', 'stats');
-    return onSnapshot(docRef, (docSnap) => {
-        if (docSnap.exists()) {
-            callback(docSnap.data().count || 0);
-        } else {
-            callback(0);
-        }
-    });
+    if (!isFirebaseConfigured || !db) {
+        callback(0);
+        return () => {};
+    }
+
+    try {
+        const docRef = doc(db, 'totalrenovacoes', 'stats');
+        return onSnapshot(docRef, (docSnap: any) => {
+            if (docSnap.exists()) {
+                callback(docSnap.data().count || 0);
+            } else {
+                callback(0);
+            }
+        }, (error: any) => {
+             console.error("Erro em totalrenovacoes:", error);
+             callback(0);
+        });
+    } catch (error) {
+        console.error("Erro ao assinar totalrenovacoes:", error);
+        callback(0);
+        return () => {};
+    }
 };
 
-// Funções de Escrita
+// === FUNÇÕES DE ESCRITA ===
 
 export const addDataToCollection = async (collectionName: string, data: any) => {
-    // Remove ID se existir para deixar o Firestore criar um
-    const { id, ...rest } = data;
-    await addDoc(collection(db, collectionName), {
-        ...rest,
-        createdAt: new Date().toISOString()
-    });
+    if (!isFirebaseConfigured || !db) {
+        alert("Firebase não configurado. Dados não serão salvos (Modo Mock).");
+        return;
+    }
+    
+    try {
+        // Remove ID se existir para deixar o Firestore gerar (ou mantenha se for intencional)
+        const { id, ...rest } = data;
+        await addDoc(collection(db, collectionName), {
+            ...rest,
+            createdAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error(`Erro ao salvar em ${collectionName}:`, error);
+        alert("Erro ao salvar dados.");
+    }
 };
 
 export const updateDataInCollection = async (collectionName: string, id: string, data: any) => {
-    const docRef = doc(db, collectionName, id);
-    await updateDoc(docRef, data);
+    if (!isFirebaseConfigured || !db) return;
+
+    try {
+        const docRef = doc(db, collectionName, id);
+        await updateDoc(docRef, data);
+    } catch (error) {
+        console.error(`Erro ao atualizar ${collectionName}:`, error);
+    }
 };
 
 export const updateTotalRenovacoes = async (newTotal: number) => {
-    const docRef = doc(db, 'totalrenovacoes', 'stats');
-    // Usa setDoc com merge true para criar se não existir
-    await setDoc(docRef, { count: newTotal }, { merge: true });
+    if (!isFirebaseConfigured || !db) return;
+
+    try {
+        const docRef = doc(db, 'totalrenovacoes', 'stats');
+        await setDoc(docRef, { count: newTotal }, { merge: true });
+    } catch (error) {
+        console.error("Erro ao atualizar total:", error);
+    }
 };
