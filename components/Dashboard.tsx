@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Lead, LeadStatus, User } from '../types';
@@ -52,9 +51,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
   // Filtragem de dados para o usuário atual
   const userFilter = (lead: Lead) => {
     if (!currentUser) return false;
-    // Admin vê tudo? O pedido foi "Dashboard deve mostrar somente os contadores de cada usuario individualmente"
-    // Assumindo que até Admin vê seu dashboard individual, ou se quiser Global, teria que mudar aqui.
-    // Seguindo a risca: "cada usuario individualmente"
+    // Admin vê tudo (Global)
+    if (currentUser.isAdmin) return true;
+    
+    // Usuários comuns/renovação veem apenas seus leads
     return lead.assignedTo === currentUser.name;
   };
 
@@ -62,11 +62,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
   const filteredRenewalLeads = renewalLeadsData.filter(userFilter);
 
   const calculateMetrics = (subset: Lead[], isRenewalSection: boolean): Metrics => {
-    // Total agora é baseado na contagem individual, ignorando o total manual global para a visão individual
+    // Total agora é baseado na contagem filtrada (Individual ou Global se Admin)
     let total = subset.length;
-    
-    // Se fosse visão global, usaríamos manualRenewalTotal em renovações. 
-    // Como é individual, usamos a contagem de leads atribuídos.
     
     const closedDeals = subset.filter(l => l.status === LeadStatus.CLOSED);
     const sales = closedDeals.length;
@@ -132,7 +129,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
       <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-100">
          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <LayoutDashboard className="w-6 h-6 text-indigo-600" />
-            Dashboard ({currentUser?.name})
+            Dashboard ({isAdmin ? 'Global' : currentUser?.name})
          </h1>
          
          <div className="flex items-center gap-4 bg-gray-50 rounded-lg p-1 border border-gray-200">
@@ -165,7 +162,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                 <div className="flex justify-between items-start z-10 relative">
                     <div className="w-full">
                         <p className="text-sm text-gray-500 font-bold uppercase mb-1">
-                            {section === 'NEW' ? 'Meus Leads' : 'Minhas Renovações'}
+                            {section === 'NEW' ? (isAdmin ? 'Total Leads' : 'Meus Leads') : (isAdmin ? 'Total Renovações' : 'Minhas Renovações')}
                         </p>
                         
                         <p className="text-3xl font-extrabold text-gray-900">{metrics.total}</p>
@@ -224,7 +221,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                              </div>
                              <div>
                                  <p className="text-xs text-gray-500 font-bold uppercase">
-                                    {section === 'NEW' ? 'Minhas Vendas' : 'Meus Renovados'}
+                                    {section === 'NEW' ? 'Vendas' : 'Renovados'}
                                  </p>
                                  <p className="text-2xl font-bold text-green-700">{metrics.sales}</p>
                              </div>
@@ -269,7 +266,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
 
         <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
             <Shield className="w-5 h-5 text-gray-400" />
-            Minha Performance por Seguradora
+            Performance por Seguradora
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm flex flex-col items-center">
@@ -292,7 +289,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
 
         <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-gray-400" />
-            Meu Financeiro
+            Financeiro
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
