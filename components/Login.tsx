@@ -41,7 +41,7 @@ export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
     <div 
         className="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat relative"
         style={{
-            backgroundImage: "url('/background.png')"
+            backgroundImage: "url('/public/background.png')"
         }}
     >
         {/* Dark Overlay */}
