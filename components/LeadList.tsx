@@ -81,10 +81,24 @@ const LeadCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ lead,
   // Calculate End Date whenever Start Date changes
   useEffect(() => {
       if (dealForm.startDate) {
-          const start = new Date(dealForm.startDate);
-          const end = new Date(start);
-          end.setFullYear(end.getFullYear() + 1);
-          setDealForm(prev => ({ ...prev, endDate: end.toISOString().split('T')[0] }));
+          // Normalize input date if necessary
+          let dateStr = dealForm.startDate;
+          if (dateStr.includes('/')) {
+              const [d, m, y] = dateStr.split('/');
+              dateStr = `${y}-${m}-${d}`;
+          }
+
+          const start = new Date(dateStr);
+          // Check validity to prevent RangeError
+          if (!isNaN(start.getTime())) {
+              const end = new Date(start);
+              end.setFullYear(end.getFullYear() + 1);
+              try {
+                  setDealForm(prev => ({ ...prev, endDate: end.toISOString().split('T')[0] }));
+              } catch(e) {
+                  console.error("Error calculating end date", e);
+              }
+          }
       }
   }, [dealForm.startDate]);
 
