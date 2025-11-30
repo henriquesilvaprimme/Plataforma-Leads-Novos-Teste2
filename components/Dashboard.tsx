@@ -92,14 +92,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
 
   const calculateMetrics = (subset: Lead[], isRenewalSection: boolean): Metrics => {
     // Total agora é baseado na contagem filtrada
-    // POREM, se for Renovações e ADMIN, usa o Total Manual para calculo da meta/conversão global
+    // POREM, se for Renovações e ADMIN (ou Usuário Renovações), usa o Total Manual para calculo da meta/conversão global
     let total = subset.length;
     
     // Vendas baseadas no subset (padrão)
     let sales = subset.filter(l => l.status === LeadStatus.CLOSED).length;
 
     if (isRenewalSection) {
-        if (isAdmin) {
+        // Mostra o total manual para Admin E usuários de Renovação
+        if (isAdmin || currentUser?.isRenovations) {
              total = manualRenewalTotal;
         }
         // Override Sales com a lógica específica de closedAt
@@ -228,9 +229,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                 <div className="flex justify-between items-start z-10 relative">
                     <div className="w-full">
                         <p className="text-[10px] text-gray-500 font-bold uppercase mb-0.5">
-                            {section === 'NEW' ? (isAdmin ? 'Total Leads' : 'Meus Leads') : (isAdmin ? 'Total Renovações' : 'Minhas Renovações')}
+                            {section === 'NEW' ? (isAdmin ? 'Total Leads' : 'Meus Leads') : (isAdmin || currentUser?.isRenovations ? 'Total Renovações' : 'Minhas Renovações')}
                         </p>
                         
+                        {/* Se for aba renovação e for Admin, permite editar. Se for renovação e usuário renovação, só mostra o total. */}
                         {section === 'RENEWAL' && isAdmin ? (
                             <div className="flex items-center gap-1">
                                 {isEditingTotal ? (
@@ -357,14 +359,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                              <p className="text-xl font-bold text-gray-400">{metrics.noContact}</p>
                         </div>
                      </div>
-                </div>
-            )}
-            
-            {section === 'RENEWAL' && (
-                <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex flex-col justify-center h-36">
-                    <p className="text-[10px] text-gray-400 font-medium text-center">
-                        Métricas de contato não aplicáveis para visão simplificada de renovações.
-                    </p>
                 </div>
             )}
         </div>
