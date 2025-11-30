@@ -49,7 +49,8 @@ const formatCreationDate = (dateString?: string) => {
 
 const RenewalCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void, onAdd: (l: Lead) => void }> = ({ lead, onUpdate, onAdd }) => {
     // States for Edit Modes
-    const [isEditingStatus, setIsEditingStatus] = useState(false);
+    // Initialize editing status to TRUE if lead is NEW, matching LeadList behavior
+    const [isEditingStatus, setIsEditingStatus] = useState(lead.status === LeadStatus.NEW);
     const [isEditingUser, setIsEditingUser] = useState(false);
 
     // Form States
@@ -92,7 +93,8 @@ const RenewalCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void, onAdd: (l
     }, [dealForm.startDate]);
 
     // Determines which status to use for layout logic (Editing ? selected : saved)
-    const effectiveStatus = isEditingStatus ? (selectedStatus as LeadStatus) : (selectedStatus || lead.status);
+    // This affects ONLY the split view (showing input fields), NOT the card color
+    const effectiveStatus = isEditingStatus ? (selectedStatus as LeadStatus) : (lead.status);
 
     // Layout Logic
     const needsObservation = [LeadStatus.IN_CONTACT, LeadStatus.NO_CONTACT, LeadStatus.SCHEDULED].includes(effectiveStatus);
@@ -214,16 +216,15 @@ const RenewalCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void, onAdd: (l
         }
     };
 
-    // Define dynamic card style based on actual lead status, not just selected status to prevent premature coloring
-    const isClosed = lead.status === LeadStatus.CLOSED;
-    
-    const cardStyle = isClosed
+    // Define dynamic card style based on ACTUAL lead status (saved in DB), 
+    // NOT selectedStatus. This prevents color change before confirmation.
+    const cardStyle = lead.status === LeadStatus.CLOSED
       ? 'bg-green-50 border-green-200' 
-      : (selectedStatus === LeadStatus.LOST || lead.status === LeadStatus.LOST)
+      : lead.status === LeadStatus.LOST
         ? 'bg-red-50 border-red-200' 
         : 'bg-white border-gray-200';
     
-    const borderColor = isClosed ? 'border-green-200' : 'border-gray-200';
+    const borderColor = lead.status === LeadStatus.CLOSED ? 'border-green-200' : 'border-gray-200';
 
     return (
         <>
@@ -243,9 +244,10 @@ const RenewalCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void, onAdd: (l
                                 <h3 className="font-bold text-base text-gray-900 leading-tight">{lead.name}</h3>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 min-h-[20px]">
-                                {!isEditingStatus && selectedStatus && (
-                                    <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide border ${getStatusColor(selectedStatus)}`}>
-                                        {selectedStatus}
+                                {/* Using lead.status instead of selectedStatus to ensure badge reflects saved state, hiding if NEW */}
+                                {!isEditingStatus && lead.status !== LeadStatus.NEW && (
+                                    <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide border ${getStatusColor(lead.status)}`}>
+                                        {lead.status}
                                     </span>
                                 )}
                                 {lead.status === LeadStatus.SCHEDULED && lead.scheduledDate && !isEditingStatus && (
@@ -313,7 +315,7 @@ const RenewalCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void, onAdd: (l
                                 Status do Lead
                             </label>
                             
-                            {isEditingStatus || !selectedStatus ? (
+                            {isEditingStatus ? (
                                 <div className="flex gap-1">
                                     <select 
                                         className="flex-1 bg-white border border-gray-300 text-xs rounded px-2 py-1.5 focus:ring-1 focus:ring-indigo-500 outline-none shadow-sm font-medium text-gray-700"
@@ -407,7 +409,7 @@ const RenewalCard: React.FC<{ lead: Lead, onUpdate: (l: Lead) => void, onAdd: (l
             {isSplitView && (
                 <div className={`
                     p-3 flex flex-col gap-3 animate-fade-in border-l
-                    ${isClosed ? borderColor : `bg-gray-50 ${borderColor}`}
+                    ${lead.status === LeadStatus.CLOSED ? borderColor : `bg-gray-50 ${borderColor}`}
                 `}>
                     <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide border-b border-gray-200 pb-1">
                         Complemento
@@ -610,7 +612,6 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, onUpdateLead, o
     
     let matchesDate = true;
     if (filterDate && lead.dealInfo?.endDate) {
-        // Filter by expiration date (dealInfo.endDate) often relevant for renewals
         matchesDate = lead.dealInfo.endDate.startsWith(filterDate);
     }
 
