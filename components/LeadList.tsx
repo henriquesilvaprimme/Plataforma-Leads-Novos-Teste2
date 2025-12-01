@@ -161,11 +161,13 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
           }
       };
       onUpdate(updatedLead);
+      
+      // Cria a cópia na coleção Renovações com o status específico "Renovação Primme"
       const renewalCopy: Lead = {
           ...updatedLead,
           id: `${lead.id}_renewal_copy_${Date.now()}`,
           createdAt: new Date().toISOString(),
-          insuranceType: 'Renovação',
+          insuranceType: 'Renovação Primme', // Alterado para lógica solicitada
           status: LeadStatus.NEW,
           assignedTo: '',
       };
