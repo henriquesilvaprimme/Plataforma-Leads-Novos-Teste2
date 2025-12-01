@@ -115,7 +115,9 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed }) => {
   // Averages Helpers
   const getAvg = (val: number, count: number) => count > 0 ? val / count : 0;
 
-  const formatMoney = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Formatter for Display in EXCEL
+  const formatMoney = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const formatNumber = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
   // Excel Export Handler
   const handleExport = () => {
@@ -145,7 +147,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed }) => {
                 <td>${lead.name}</td>
                 <td>${info.insurer}</td>
                 <td class="currency-fmt">${formatMoney(info.netPremium)}</td>
-                <td class="number-fmt">${formatMoney(info.commission)}</td>
+                <td class="number-fmt">${formatNumber(info.commission)}</td>
                 <td class="currency-fmt">${formatMoney(baseValue)}</td>
                 <td>${payMethodShort}</td>
                 <td>${info.installments}</td>
@@ -166,7 +168,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed }) => {
                 .value-kpi { font-weight: bold; border: 1px solid #000; }
                 .header-table { background-color: #4472C4; color: white; font-weight: bold; }
                 .spacer { border: none; background: none; }
-                .currency-fmt { mso-number-format:"R\$\ \#\,\#\#0\.00"; }
+                .currency-fmt { white-space: nowrap; }
                 .number-fmt { mso-number-format:"\#\,\#\#0\.00"; } 
             </style>
         </head>
@@ -189,7 +191,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed }) => {
                     <td>PRÊMIO LÍQUIDO</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.new.premium)}</td>
                     <td>COMISSÃO</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.new.commission)}</td>
                     <td>TICKET MÉDIO</td> <td class="value-kpi currency-fmt">${formatMoney(getAvg(metrics.new.premium, metrics.new.count))}</td>
-                    <td>MÉDIA COMISSÃO</td> <td class="value-kpi number-fmt">${formatMoney(getAvg(metrics.new.commPctSum, metrics.new.count))}%</td>
+                    <td>MÉDIA COMISSÃO</td> <td class="value-kpi number-fmt">${formatNumber(getAvg(metrics.new.commPctSum, metrics.new.count))}%</td>
                 </tr>
 
                 <!-- RENOVAÇÃO -->
@@ -199,7 +201,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed }) => {
                     <td>PRÊMIO LÍQUIDO</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.renewal.premium)}</td>
                     <td>COMISSÃO</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.renewal.commission)}</td>
                     <td>TICKET MÉDIO</td> <td class="value-kpi currency-fmt">${formatMoney(getAvg(metrics.renewal.premium, metrics.renewal.count))}</td>
-                    <td>MÉDIA COMISSÃO</td> <td class="value-kpi number-fmt">${formatMoney(getAvg(metrics.renewal.commPctSum, metrics.renewal.count))}%</td>
+                    <td>MÉDIA COMISSÃO</td> <td class="value-kpi number-fmt">${formatNumber(getAvg(metrics.renewal.commPctSum, metrics.renewal.count))}%</td>
                 </tr>
 
                 <tr><td colspan="11" class="spacer">&nbsp;</td></tr>
