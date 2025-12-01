@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Dashboard } from './components/Dashboard';
@@ -349,7 +350,7 @@ export default function App() {
                 <Route path="/relatorios" element={
                     isAdmin ? (
                         <div className="h-full">
-                            <Reports leads={leadsCollection} renewed={renewedCollection} />
+                            <Reports leads={leadsCollection} renewed={renewedCollection} renewals={renewalsCollection} />
                         </div>
                     ) : <Navigate to="/dashboard" />
                 } />
