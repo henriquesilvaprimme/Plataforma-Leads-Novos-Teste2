@@ -118,7 +118,7 @@ export const mapDocumentToLead = (doc: any): Lead => {
             installments: data.Parcelamento || '',
             startDate: parseDateToISO(data.VigenciaInicial),
             endDate: parseDateToISO(data.VigenciaFinal),
-            paymentMethod: '' 
+            paymentMethod: data.FormaPagamento || ''
         } : undefined,
         endorsements: data.endorsements || []
     } as unknown as Lead;
@@ -191,6 +191,7 @@ const mapAppToDb = (collectionName: string, data: any) => {
         dbLead.Comissao = data.dealInfo.commission || 0;
         dbLead.VigenciaInicial = data.dealInfo.startDate || '';
         dbLead.VigenciaFinal = data.dealInfo.endDate || '';
+        dbLead.FormaPagamento = data.dealInfo.paymentMethod || '';
     }
 
     if (collectionName === 'renovacoes') {
