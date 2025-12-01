@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus, User, DealInfo } from '../types';
 import { Car, Phone, Calendar, DollarSign, Percent, CreditCard, Users, RefreshCw, Bell, Search, Shield, AlertTriangle, Edit, Check, Plus } from './Icons';
@@ -50,7 +51,6 @@ const formatCreationDate = (dateString?: string) => {
 
 const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => void, onAdd: (l: Lead) => void, currentUser: User | null }> = ({ lead, users, onUpdate, onAdd, currentUser }) => {
     const [isEditingStatus, setIsEditingStatus] = useState(lead.status === LeadStatus.NEW);
-    // FIX: Initialize based on whether there is an assigned user
     const [isEditingUser, setIsEditingUser] = useState(!lead.assignedTo);
     const [isEditingNotes, setIsEditingNotes] = useState(false);
 
@@ -111,7 +111,7 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
              setSelectedStatus("");
         }
         setSelectedUser(lead.assignedTo || '');
-        // FIX: Update edit mode if assignedTo changes externally to null
+        
         if (!lead.assignedTo) setIsEditingUser(true);
         
         setDealForm(prev => ({ ...prev, leadName: lead.name }));
@@ -389,7 +389,6 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
                                     </span>
                                 </div>
                             ) : (
-                                // FIX: Removed || !selectedUser from check to prevent premature toggle
                                 isEditingUser ? (
                                     <div className="flex gap-1 w-fit max-w-full">
                                         <select 
@@ -549,9 +548,9 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
                                     className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white"
                                  >
                                     <option value="">Selecione</option>
-                                    <option value="Cartão Porto Seguro">Cartão Porto Seguro</option>
-                                    <option value="Cartão de Crédito">Cartão de Crédito</option>
-                                    <option value="Débito">Débito</option>
+                                    <option value="CP">Cartão Porto Seguro</option>
+                                    <option value="CC">Cartão de Crédito</option>
+                                    <option value="Debito">Débito</option>
                                     <option value="Boleto">Boleto</option>
                                  </select>
                             </div>
@@ -625,51 +624,89 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
 
 export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdateLead, onAddLead, currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  // Filtro de Data iniciando com o Mês Atual
-  const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().slice(0, 7)); 
-  
+  const [filterDate, setFilterDate] = useState<string>(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // New Renewal State
+  // FIX: Add missing state for Create Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newRenewalForm, setNewRenewalForm] = useState({
-      name: '', vehicleModel: '', vehicleYear: '', city: '', phone: '', insuranceType: 'Renovação', 
-      insurer: '', paymentMethod: '', netPremium: 0, commission: 0, installments: '', 
-      startDate: '', endDate: '', assignedTo: ''
+      name: '',
+      phone: '',
+      vehicleModel: '',
+      vehicleYear: '',
+      city: '',
+      insurer: '',
+      paymentMethod: '',
+      netPremium: 0,
+      commission: 0,
+      installments: '',
+      startDate: '',
+      endDate: '',
+      assignedTo: ''
   });
 
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterStatus, filterDate]);
+  const handleCreateRenewal = () => {
+    const newLead: Lead = {
+        id: `renewal_${Date.now()}`,
+        name: newRenewalForm.name,
+        vehicleModel: newRenewalForm.vehicleModel,
+        vehicleYear: newRenewalForm.vehicleYear,
+        city: newRenewalForm.city,
+        phone: newRenewalForm.phone,
+        insuranceType: 'Renovação',
+        status: LeadStatus.NEW,
+        assignedTo: newRenewalForm.assignedTo,
+        createdAt: new Date().toISOString(),
+        email: '',
+        notes: '',
+        dealInfo: {
+            insurer: newRenewalForm.insurer,
+            paymentMethod: newRenewalForm.paymentMethod,
+            netPremium: newRenewalForm.netPremium,
+            commission: newRenewalForm.commission,
+            installments: newRenewalForm.installments,
+            startDate: newRenewalForm.startDate,
+            endDate: newRenewalForm.endDate
+        }
+    };
+    onAddLead(newLead);
+    setShowCreateModal(false);
+    setNewRenewalForm({
+        name: '', phone: '', vehicleModel: '', vehicleYear: '', city: '',
+        insurer: '', paymentMethod: '', netPremium: 0, commission: 0, installments: '',
+        startDate: '', endDate: '', assignedTo: ''
+    });
+  };
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterDate]);
 
   const filteredLeads = leads.filter(lead => {
     const term = searchTerm.toLowerCase();
     const name = lead.name || '';
     const phone = lead.phone || '';
-    const matchesSearch = name.toLowerCase().includes(term) || phone.includes(term); 
-    const matchesStatus = filterStatus === 'all' 
-      ? lead.status !== LeadStatus.LOST // Se 'all', esconde perdidos
-      : lead.status === filterStatus; // Se selecionou 'LOST', mostra
-
+    const matchesSearch = name.toLowerCase().includes(term) || phone.includes(term);
+    
+    // Date filter for renewals usually checks endDate (expiry)
     let matchesDate = true;
-    if (filterDate) {
-        // Filtra pela Vigência Final (Mês de Renovação)
-        const endDate = lead.dealInfo?.endDate || '';
-        if (endDate && endDate.includes('-')) {
-             matchesDate = endDate.startsWith(filterDate);
-        } else {
-             // Se não tiver data de vigência final e o filtro estiver ativo, considera false.
-             matchesDate = false;
-        }
-    }
+    if (filterDate && lead.dealInfo?.endDate) {
+        matchesDate = lead.dealInfo.endDate.startsWith(filterDate);
+    } 
 
-    const isAssignedToUser = !currentUser || currentUser.isAdmin || lead.assignedTo === currentUser.name;
+    const isAssignedToUser = !currentUser || currentUser.isAdmin || currentUser.isRenovations || lead.assignedTo === currentUser.name;
 
-    return matchesSearch && matchesStatus && matchesDate && isAssignedToUser;
+    return matchesSearch && matchesDate && isAssignedToUser;
   }).sort((a, b) => {
-    const dateA = new Date(a.createdAt).getTime();
-    const dateB = new Date(b.createdAt).getTime();
-    return dateB - dateA;
+     // Sort by Expiry Date (endDate) Ascending (Soonest first) for renewals
+     const dateA = a.dealInfo?.endDate || '9999-99-99';
+     const dateB = b.dealInfo?.endDate || '9999-99-99';
+     return dateA.localeCompare(dateB);
   });
 
   const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
@@ -678,40 +715,6 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
   const handleNextPage = () => { if (currentPage < totalPages) setCurrentPage(p => p + 1); };
   const handlePrevPage = () => { if (currentPage > 1) setCurrentPage(p => p - 1); };
 
-  const handleCreateRenewal = () => {
-      const newLead: Lead = {
-          id: Date.now().toString(),
-          name: newRenewalForm.name,
-          vehicleModel: newRenewalForm.vehicleModel,
-          vehicleYear: newRenewalForm.vehicleYear,
-          city: newRenewalForm.city,
-          phone: newRenewalForm.phone,
-          insuranceType: newRenewalForm.insuranceType,
-          assignedTo: newRenewalForm.assignedTo,
-          status: LeadStatus.NEW,
-          createdAt: new Date().toISOString(),
-          email: '', 
-          notes: '',
-          dealInfo: {
-              insurer: newRenewalForm.insurer,
-              paymentMethod: newRenewalForm.paymentMethod,
-              netPremium: newRenewalForm.netPremium,
-              commission: newRenewalForm.commission,
-              installments: newRenewalForm.installments,
-              startDate: newRenewalForm.startDate,
-              endDate: newRenewalForm.endDate,
-          }
-      };
-      // App.tsx handles sending this to 'renovacoes' based on insuranceType
-      onAddLead(newLead);
-      setShowCreateModal(false);
-      setNewRenewalForm({
-          name: '', vehicleModel: '', vehicleYear: '', city: '', phone: '', insuranceType: 'Renovação', 
-          insurer: '', paymentMethod: '', netPremium: 0, commission: 0, installments: '', 
-          startDate: '', endDate: '', assignedTo: ''
-      });
-  };
-
   return (
     <div className="h-full flex flex-col">
       <div className="mb-6 flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
@@ -719,9 +722,7 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
             <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
                 <RefreshCw className="w-5 h-5" />
             </div>
-            <div>
-                <h2 className="text-lg font-bold text-gray-800">Renovações</h2>
-            </div>
+            <div><h2 className="text-xl font-bold text-gray-800">Renovações</h2></div>
         </div>
         
         <div className="flex flex-col md:flex-row gap-2 flex-wrap">
@@ -743,27 +744,14 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
             onChange={(e) => setFilterDate(e.target.value)}
           />
 
-          <select 
-            className="border border-gray-300 rounded text-sm px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white cursor-pointer text-gray-700"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="all">Todos Status</option>
-            {Object.values(LeadStatus).map(status => (
-                <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
-
-          {/* Botão Nova Renovação apenas para Admin */}
-          {currentUser?.isAdmin && (
-            <button 
+          {/* Add Button for Manual Renewal Creation */}
+          <button 
                 onClick={() => setShowCreateModal(true)}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded transition-all shadow-sm flex items-center justify-center gap-2 text-sm font-bold"
-            >
+          >
                 <Plus className="w-4 h-4" />
-                Nova Renovação
-            </button>
-          )}
+                Nova
+          </button>
         </div>
       </div>
 
@@ -865,9 +853,9 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
                                     className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
                                 >
                                     <option value="">Selecione</option>
-                                    <option value="Cartão Porto Seguro">Cartão Porto Seguro</option>
-                                    <option value="Cartão de Crédito">Cartão de Crédito</option>
-                                    <option value="Débito">Débito</option>
+                                    <option value="CP">Cartão Porto Seguro</option>
+                                    <option value="CC">Cartão de Crédito</option>
+                                    <option value="Debito">Débito</option>
                                     <option value="Boleto">Boleto</option>
                                 </select>
                             </div>
