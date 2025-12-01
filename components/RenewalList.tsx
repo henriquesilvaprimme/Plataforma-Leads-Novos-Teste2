@@ -60,7 +60,7 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
     const [scheduleDate, setScheduleDate] = useState<string>(lead.scheduledDate || '');
 
     const [showDealModal, setShowDealModal] = useState(false);
-    const [dealForm, setDealForm] = useState<DealInfo & { leadName: string }>({
+    const [dealForm, setDealForm] = useState<DealInfo & { leadName: string, cartaoPortoNovo: boolean }>({
         leadName: lead.name,
         insurer: lead.dealInfo?.insurer || '',
         paymentMethod: lead.dealInfo?.paymentMethod || '',
@@ -68,7 +68,8 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
         commission: lead.dealInfo?.commission || 0,
         installments: lead.dealInfo?.installments || '',
         startDate: new Date().toISOString().split('T')[0],
-        endDate: ''
+        endDate: '',
+        cartaoPortoNovo: false
     });
 
     // Endorsement State
@@ -157,6 +158,7 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
             name: dealForm.leadName,
             status: LeadStatus.CLOSED,
             assignedTo: lead.assignedTo || "Henrique Silva",
+            cartaoPortoNovo: dealForm.cartaoPortoNovo,
             dealInfo: {
                 insurer: dealForm.insurer,
                 paymentMethod: dealForm.paymentMethod,
@@ -553,6 +555,20 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
                                     <option value="Debito">Débito</option>
                                     <option value="Boleto">Boleto</option>
                                  </select>
+                                 {dealForm.paymentMethod === 'CP' && (
+                                    <div className="flex items-center gap-2 mt-2 p-2 bg-blue-50 rounded border border-blue-100">
+                                        <input 
+                                            type="checkbox" 
+                                            id="cpNovo"
+                                            checked={dealForm.cartaoPortoNovo}
+                                            onChange={(e) => setDealForm({...dealForm, cartaoPortoNovo: e.target.checked})}
+                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <label htmlFor="cpNovo" className="text-xs font-bold text-blue-800 uppercase select-none cursor-pointer">
+                                            Cartão Porto Novo?
+                                        </label>
+                                    </div>
+                                 )}
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
