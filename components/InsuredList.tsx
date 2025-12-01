@@ -15,6 +15,7 @@ interface EndorsementForm {
   commission: number;
   installments: string;
   startDate: string;
+  paymentMethod: string;
 }
 
 const formatDisplayDate = (dateString?: string) => {
@@ -41,7 +42,8 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
     netPremium: lead.dealInfo?.netPremium || 0,
     commission: lead.dealInfo?.commission || 0,
     installments: lead.dealInfo?.installments || '',
-    startDate: new Date().toISOString().split('T')[0]
+    startDate: new Date().toISOString().split('T')[0],
+    paymentMethod: ''
   });
 
   const isCancelled = lead.status === LeadStatus.LOST;
@@ -61,7 +63,8 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
       commission: endorseForm.commission,
       installments: endorseForm.installments,
       startDate: endorseForm.startDate,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      paymentMethod: endorseForm.paymentMethod
     };
 
     // Atualiza o lead com o novo veículo e adiciona o endosso na lista
@@ -123,6 +126,7 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
                       <p className="font-bold text-yellow-800 border-b border-yellow-200 pb-0.5 mb-0.5">Endosso</p>
                       <p>Veículo: <b>{e.vehicleModel}</b></p>
                       <p>Prêmio: <b>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.netPremium)}</b></p>
+                      <p>Pagamento: <b>{e.paymentMethod} ({e.installments})</b></p>
                       <p>Vigência: <b>{formatDisplayDate(e.startDate)}</b></p>
                    </div>
                 ))}
@@ -208,14 +212,26 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
                         <input type="number" value={endorseForm.commission} onChange={e => setEndorseForm({...endorseForm, commission: Number(e.target.value)})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500" />
                      </div>
                   </div>
-                  <div>
-                     <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Parcelamento</label>
-                     <select value={endorseForm.installments} onChange={e => setEndorseForm({...endorseForm, installments: e.target.value})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500 bg-white">
-                        <option value="">Selecione</option>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
-                             <option key={num} value={`${num}x`}>{num}x</option>
-                        ))}
-                     </select>
+                  <div className="grid grid-cols-2 gap-3">
+                      <div>
+                         <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Forma Pagamento</label>
+                         <select value={endorseForm.paymentMethod} onChange={e => setEndorseForm({...endorseForm, paymentMethod: e.target.value})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500 bg-white">
+                            <option value="">Selecione</option>
+                            <option value="CP">Cartão Porto Seguro</option>
+                            <option value="CC">Cartão de Crédito</option>
+                            <option value="Debito">Débito</option>
+                            <option value="Boleto">Boleto</option>
+                         </select>
+                      </div>
+                      <div>
+                         <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Parcelamento</label>
+                         <select value={endorseForm.installments} onChange={e => setEndorseForm({...endorseForm, installments: e.target.value})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500 bg-white">
+                            <option value="">Selecione</option>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
+                                 <option key={num} value={`${num}x`}>{num}x</option>
+                            ))}
+                         </select>
+                      </div>
                   </div>
                   <div>
                      <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Vigência Inicial (Endosso)</label>
