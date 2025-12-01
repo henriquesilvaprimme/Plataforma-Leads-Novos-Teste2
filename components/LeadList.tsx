@@ -61,7 +61,7 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
   const [scheduleDate, setScheduleDate] = useState<string>(lead.scheduledDate || '');
 
   const [showDealModal, setShowDealModal] = useState(false);
-  const [dealForm, setDealForm] = useState<DealInfo & { leadName: string }>({
+  const [dealForm, setDealForm] = useState<DealInfo & { leadName: string, cartaoPortoNovo: boolean }>({
       leadName: lead.name,
       insurer: '',
       paymentMethod: '',
@@ -69,7 +69,8 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
       commission: 0,
       installments: '',
       startDate: new Date().toISOString().split('T')[0],
-      endDate: ''
+      endDate: '',
+      cartaoPortoNovo: false
   });
 
   const isAdmin = currentUser?.isAdmin;
@@ -148,6 +149,7 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
           name: dealForm.leadName,
           status: LeadStatus.CLOSED,
           closedAt: new Date().toISOString(),
+          cartaoPortoNovo: dealForm.cartaoPortoNovo,
           dealInfo: {
               insurer: dealForm.insurer,
               paymentMethod: dealForm.paymentMethod,
@@ -416,6 +418,11 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
                                 <span className="font-semibold">{lead.dealInfo?.commission}%</span>
                             </div>
                         </div>
+                        {lead.cartaoPortoNovo && (
+                             <div className="mt-1 bg-blue-50 border border-blue-200 rounded px-2 py-1 text-blue-700 text-[10px] font-bold">
+                                 ★ Cartão Porto Novo
+                             </div>
+                        )}
                         <div className="border-t border-gray-200 pt-1 mt-1">
                              <span className="block text-gray-400 text-[10px] uppercase">Vigência</span>
                              <span className="font-medium block mt-0.5">
@@ -544,6 +551,20 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
                                 <option value="Debito">Débito</option>
                                 <option value="Boleto">Boleto</option>
                              </select>
+                             {dealForm.paymentMethod === 'CP' && (
+                                <div className="flex items-center gap-2 mt-2 p-2 bg-blue-50 rounded border border-blue-100">
+                                    <input 
+                                        type="checkbox" 
+                                        id="cpNovo"
+                                        checked={dealForm.cartaoPortoNovo}
+                                        onChange={(e) => setDealForm({...dealForm, cartaoPortoNovo: e.target.checked})}
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                    />
+                                    <label htmlFor="cpNovo" className="text-xs font-bold text-blue-800 uppercase select-none cursor-pointer">
+                                        Cartão Porto Novo?
+                                    </label>
+                                </div>
+                             )}
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
