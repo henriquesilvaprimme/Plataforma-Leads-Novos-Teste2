@@ -7,9 +7,10 @@ import { RenewedList } from './components/RenewedList';
 import { InsuredList } from './components/InsuredList';
 import { UserList } from './components/UserList';
 import { Ranking } from './components/Ranking';
+import { Reports } from './components/Reports';
 import { Login } from './components/Login';
 import { Lead, LeadStatus, User } from './types';
-import { LayoutDashboard, Users, RefreshCw, CheckCircle, FileText, UserCog, Trophy, Power } from './components/Icons';
+import { LayoutDashboard, Users, RefreshCw, CheckCircle, FileText, UserCog, Trophy, Power, FileBarChart2 } from './components/Icons';
 import { 
   subscribeToCollection, 
   subscribeToRenovationsTotal, 
@@ -217,6 +218,17 @@ export default function App() {
             </button>
           )}
 
+           {/* RELATÓRIOS: Admin Apenas */}
+           {isAdmin && (
+            <button 
+                onClick={() => navigate('/relatorios')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentPath.startsWith('/relatorios') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            >
+                <FileBarChart2 className="w-5 h-5" />
+                <span>Relatórios</span>
+            </button>
+          )}
+
           {/* USUÁRIOS: Admin Apenas */}
           {isAdmin && (
             <button 
@@ -330,6 +342,14 @@ export default function App() {
                     (isAdmin || isComum) ? (
                         <div className="h-full">
                             <Ranking leads={allLeadsForRanking} users={usersCollection} />
+                        </div>
+                    ) : <Navigate to="/dashboard" />
+                } />
+
+                <Route path="/relatorios" element={
+                    isAdmin ? (
+                        <div className="h-full">
+                            <Reports leads={leadsCollection} renewed={renewedCollection} />
                         </div>
                     ) : <Navigate to="/dashboard" />
                 } />
