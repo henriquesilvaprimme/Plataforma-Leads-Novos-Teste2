@@ -571,10 +571,14 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
                         <div>
                             <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Prêmio Líquido (R$)</label>
                             <input 
-                                type="number"
+                                type="text"
                                 placeholder="0,00"
-                                value={dealForm.netPremium || ''}
-                                onChange={(e) => setDealForm({...dealForm, netPremium: parseFloat(e.target.value)})}
+                                value={dealForm.netPremium.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                onChange={(e) => {
+                                    const raw = e.target.value.replace(/\D/g, '');
+                                    const val = raw ? parseInt(raw, 10) / 100 : 0;
+                                    setDealForm(prev => ({ ...prev, netPremium: val }));
+                                }}
                                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none"
                             />
                         </div>
