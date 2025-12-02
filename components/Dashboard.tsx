@@ -91,6 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
     .filter(l => dateFilter(l, true));
 
   // 2. Leads for 'NEW' Section (From Meus Leads Tab)
+  // 'Indicação' remains in the array to be counted in financials/sales, but will be excluded from "Total Leads" count later
   const filteredNewLeads = newLeadsData
     .filter(userFilter)
     .filter(l => dateFilter(l, false));
@@ -107,6 +108,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
     // Total agora é baseado na contagem filtrada
     // POREM, se for Renovações e ADMIN (ou Usuário Renovações), usa o Total Manual para calculo da meta/conversão global
     let total = subset.length;
+
+    // LÓGICA DE INDICAÇÃO:
+    // Se for seção NOVO, excluímos 'Indicação' apenas da contagem TOTAL DE LEADS.
+    // O subset continua contendo Indicação para que eles somem nas Vendas e Financeiro abaixo.
+    if (!isRenewalSection) {
+        total = subset.filter(l => l.insuranceType !== 'Indicação').length;
+    }
     
     // Vendas baseadas no subset (padrão)
     let sales = subset.filter(l => l.status === LeadStatus.CLOSED).length;
@@ -126,6 +134,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
     const inContact = subset.filter(l => l.status === LeadStatus.IN_CONTACT).length;
     const noContact = subset.filter(l => l.status === LeadStatus.NO_CONTACT).length;
     
+    // Conversão pode passar de 100% se houver muitas indicações fechadas (já que elas saíram do denominador Total), mas é o comportamento esperado.
     const conversionRate = total > 0 ? (sales / total) * 100 : 0;
 
     let totalPremium = 0;
@@ -136,6 +145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
     let othersCount = 0;
 
     // Para calcular os financeiros e contadores de seguradora, usamos os leads fechados do subset
+    // O subset aqui INCLUI Indicação, então eles serão somados no financeiro.
     const leadsForStats = subset.filter(l => l.status === LeadStatus.CLOSED);
 
     leadsForStats.forEach(lead => {
@@ -298,7 +308,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                 {section === 'NEW' && (
                     <div className="mt-2">
                         <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1">
-                            <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${metrics.conversionRate}%` }}></div>
+                            <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, metrics.conversionRate)}%` }}></div>
                         </div>
                         <p className="text-[10px] text-gray-500 font-medium">
                             Conversão: <span className="text-indigo-600 font-bold">{metrics.conversionRate.toFixed(1)}%</span>
