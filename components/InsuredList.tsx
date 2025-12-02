@@ -36,13 +36,14 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
   const [showEndorseModal, setShowEndorseModal] = useState(false);
   const [showEndorseInfo, setShowEndorseInfo] = useState<string | null>(null); // Stores ID of endorsement to show info for
   
+  // Inicializa com campos vazios conforme solicitado
   const [endorseForm, setEndorseForm] = useState<EndorsementForm>({
-    vehicleModel: lead.vehicleModel,
-    vehicleYear: lead.vehicleYear,
-    netPremium: lead.dealInfo?.netPremium || 0,
-    commission: lead.dealInfo?.commission || 0,
-    installments: lead.dealInfo?.installments || '',
-    startDate: new Date().toISOString().split('T')[0],
+    vehicleModel: '',
+    vehicleYear: '',
+    netPremium: 0,
+    commission: 0,
+    installments: '',
+    startDate: '',
     paymentMethod: ''
   });
 
@@ -57,8 +58,8 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
   const handleSaveEndorsement = () => {
     const newEndorsement: Endorsement = {
       id: Date.now().toString(),
-      vehicleModel: endorseForm.vehicleModel,
-      vehicleYear: endorseForm.vehicleYear,
+      vehicleModel: endorseForm.vehicleModel || lead.vehicleModel, // Fallback se o usuário deixar vazio, ou vazio se preferir
+      vehicleYear: endorseForm.vehicleYear || lead.vehicleYear,
       netPremium: endorseForm.netPremium,
       commission: endorseForm.commission,
       installments: endorseForm.installments,
@@ -67,16 +68,26 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
       paymentMethod: endorseForm.paymentMethod
     };
 
-    // Atualiza o lead com o novo veículo e adiciona o endosso na lista
+    // Atualiza o lead com o novo veículo (se preenchido) e adiciona o endosso na lista
     const updatedLead = {
       ...lead,
-      vehicleModel: endorseForm.vehicleModel, // Atualiza modelo no card
-      vehicleYear: endorseForm.vehicleYear,   // Atualiza ano no card
+      vehicleModel: endorseForm.vehicleModel || lead.vehicleModel, 
+      vehicleYear: endorseForm.vehicleYear || lead.vehicleYear,   
       endorsements: [...(lead.endorsements || []), newEndorsement]
     };
 
     onUpdate(updatedLead);
     setShowEndorseModal(false);
+    // Limpa form novamente
+    setEndorseForm({
+        vehicleModel: '',
+        vehicleYear: '',
+        netPremium: 0,
+        commission: 0,
+        installments: '',
+        startDate: '',
+        paymentMethod: ''
+    });
   };
 
   return (
@@ -227,21 +238,27 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
                   <div className="grid grid-cols-2 gap-3">
                      <div>
                         <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Veículo (Novo)</label>
-                        <input type="text" value={endorseForm.vehicleModel} onChange={e => setEndorseForm({...endorseForm, vehicleModel: e.target.value})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500" />
+                        <input type="text" value={endorseForm.vehicleModel} onChange={e => setEndorseForm({...endorseForm, vehicleModel: e.target.value})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500" placeholder="Opcional" />
                      </div>
                      <div>
                         <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Ano (Novo)</label>
-                        <input type="text" value={endorseForm.vehicleYear} onChange={e => setEndorseForm({...endorseForm, vehicleYear: e.target.value})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500" />
+                        <input type="text" value={endorseForm.vehicleYear} onChange={e => setEndorseForm({...endorseForm, vehicleYear: e.target.value})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500" placeholder="Opcional" />
                      </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                      <div>
                         <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Prêmio Líq.</label>
-                        <input type="number" value={endorseForm.netPremium} onChange={e => setEndorseForm({...endorseForm, netPremium: Number(e.target.value)})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500" />
+                        <input type="text" value={endorseForm.netPremium ? endorseForm.netPremium.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''} 
+                            onChange={e => {
+                                const raw = e.target.value.replace(/\D/g, '');
+                                const val = raw ? parseInt(raw, 10) / 100 : 0;
+                                setEndorseForm({...endorseForm, netPremium: val});
+                            }} 
+                            className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500" placeholder="0,00" />
                      </div>
                      <div>
                         <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Comissão (%)</label>
-                        <input type="number" value={endorseForm.commission} onChange={e => setEndorseForm({...endorseForm, commission: Number(e.target.value)})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500" />
+                        <input type="number" value={endorseForm.commission || ''} onChange={e => setEndorseForm({...endorseForm, commission: Number(e.target.value)})} className="w-full border rounded px-2 py-1 text-xs outline-none focus:border-blue-500" />
                      </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -355,8 +372,8 @@ export const InsuredList: React.FC<InsuredListProps> = ({ leads, onUpdateLead })
                       </span>
                    </div>
 
-                   {/* Vehicles Grid - Expanded to 2 cols for large cards */}
-                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                   {/* Vehicles Grid - Alterado para 1 coluna para igualar largura do Ranking */}
+                   <div className="grid grid-cols-1 gap-6">
                       {group.leads.map(lead => (
                          <VehicleCard key={lead.id} lead={lead} onUpdate={onUpdateLead} />
                       ))}
