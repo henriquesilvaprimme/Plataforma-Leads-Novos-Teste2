@@ -84,6 +84,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
                      installments: lead.dealInfo.installments,
                      paymentMethod: lead.dealInfo.paymentMethod,
                      startDate: lead.dealInfo.startDate,
+                     collaborator: lead.assignedTo || 'Não informado',
                      id: lead.id
                  });
             }
@@ -110,6 +111,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
                         installments: end.installments,
                         paymentMethod: end.paymentMethod,
                         startDate: end.startDate,
+                        collaborator: lead.assignedTo || 'Não informado',
                         id: `${lead.id}_END_${idx}`
                     });
                 }
@@ -147,11 +149,6 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
         if (item.subtype === 'Renovação Primme') {
             target = data.renewal;
         } else if (item.type !== 'ENDORSEMENT') {
-            // Endorsements are not added to New/Renewal buckets to avoid skewing ticket average, 
-            // unless explicit instruction given. Typically Endorsements affect total premium but not item count.
-            // If we want Endorsements to affect Premium of a bucket but not count, we need separate logic.
-            // Assuming Endorsements just go to General Total as requested ("premio liquido dessa sessao").
-            // For standard Sales (Novo, Renovação, Indicação):
             target = data.new;
         } else {
             target = null;
@@ -181,125 +178,347 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
   const formatMoney = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const formatNumber = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
-  // Excel Export Handler
+  // Excel Export Handler using XML Spreadsheet 2003 format to correctly support multiple sheets
   const handleExport = () => {
+    // Helper to format values for XML
+    const fmtStr = (val: any) => val ? String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+    const fmtNum = (val: number) => val || 0;
     const fmtDate = (d?: string) => {
-        if (!d) return '-';
+        if (!d) return '';
         if (d.includes('-')) {
-            const [y, m, day] = d.split('-');
-            return `${day}/${m}/${y}`;
+             // XML Spreadsheet expects YYYY-MM-DDT00:00:00.000
+             return `${d}T00:00:00.000`;
         }
-        return d;
+        return '';
     };
 
-    // Construct HTML Rows
-    const tableRows = reportItems.map(item => {
+    // Calculate Collab Data beforehand
+    const collaboratorGroups: {[key: string]: any[]} = {};
+    reportItems.forEach(item => {
+        const name = item.collaborator || 'Outros';
+        if(!collaboratorGroups[name]) collaboratorGroups[name] = [];
+        collaboratorGroups[name].push(item);
+    });
+
+    let workbookXML = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="sHeader">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#4472C4" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="sSubHeader">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000" ss:Bold="1"/>
+   <Interior ss:Color="#D9E1F2" ss:Pattern="Solid"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sDataCenter">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sCurrency">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <NumberFormat ss:Format="&quot;R$&quot;\ #,##0.00"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sPercent">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <NumberFormat ss:Format="0.00%"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sDate">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <NumberFormat ss:Format="Short Date"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sHighlight">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Interior ss:Color="#E2EFDA" ss:Pattern="Solid"/>
+   <NumberFormat ss:Format="&quot;R$&quot;\ #,##0.00"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#D4D4D4"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sTitle">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="14" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#4472C4" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="sSummaryBox">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000" ss:Bold="1"/>
+    <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sSummaryBoxCurrency">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000" ss:Bold="1"/>
+    <NumberFormat ss:Format="&quot;R$&quot;\ #,##0.00"/>
+    <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="sSummaryBoxPercent">
+    <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+    <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000" ss:Bold="1"/>
+    <NumberFormat ss:Format="0.00%"/>
+    <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+   </Borders>
+  </Style>
+ </Styles>`;
+
+    // --- SHEET 1: Produção Geral ---
+    workbookXML += `<Worksheet ss:Name="Produção ${filterDate}">
+  <Table ss:DefaultColumnWidth="100">
+   <Column ss:Width="150"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="200"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="60"/>
+   <Column ss:Width="120"/>
+   <Column ss:Width="150"/>
+   
+   <Row ss:Height="25">
+    <Cell ss:MergeAcross="11" ss:StyleID="sTitle"><Data ss:Type="String">RELATÓRIO DE PRODUÇÃO - ${filterDate}</Data></Cell>
+   </Row>
+   <Row><Cell></Cell></Row>
+   
+   <Row>
+    <Cell ss:MergeAcross="3" ss:StyleID="sSubHeader"><Data ss:Type="String">RESUMO GERAL</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">PRÊMIO LÍQ. TOTAL</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(metrics.general.premium)}</Data></Cell>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">COMISSÃO TOTAL</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(metrics.general.commission)}</Data></Cell>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">ITENS PRODUZIDOS</Data></Cell>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="Number">${fmtNum(metrics.general.count)}</Data></Cell>
+   </Row>
+   <Row><Cell></Cell></Row>
+   
+   <Row>
+    <Cell ss:MergeAcross="3" ss:StyleID="sSubHeader"><Data ss:Type="String">SEGURO NOVO</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">PRÊMIO LÍQUIDO</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(metrics.new.premium)}</Data></Cell>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">COMISSÃO</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(metrics.new.commission)}</Data></Cell>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">TICKET MÉDIO</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(getAvg(metrics.new.premium, metrics.new.count))}</Data></Cell>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">MÉDIA COMISSÃO</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxPercent"><Data ss:Type="Number">${fmtNum(getAvg(metrics.new.commPctSum, metrics.new.count)/100)}</Data></Cell>
+   </Row>
+   <Row><Cell></Cell></Row>
+
+   <Row>
+    <Cell ss:MergeAcross="3" ss:StyleID="sSubHeader"><Data ss:Type="String">RENOVAÇÕES PRIMME</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">PRÊMIO LÍQUIDO</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(metrics.renewal.premium)}</Data></Cell>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">COMISSÃO</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(metrics.renewal.commission)}</Data></Cell>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">TICKET MÉDIO</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(getAvg(metrics.renewal.premium, metrics.renewal.count))}</Data></Cell>
+    <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">MÉDIA COMISSÃO</Data></Cell>
+    <Cell ss:StyleID="sSummaryBoxPercent"><Data ss:Type="Number">${fmtNum(getAvg(metrics.renewal.commPctSum, metrics.renewal.count)/100)}</Data></Cell>
+   </Row>
+   <Row><Cell></Cell></Row>
+
+   <Row>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">ID</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Vigência Início</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Tipo</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Segurado</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Seguradora</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Prêmio Líquido</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">% Com</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Comissão Base</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Forma Pagto</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Parc</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Comissão Final (85%)</Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Colaborador</Data></Cell>
+   </Row>`;
+
+   reportItems.forEach(item => {
         const { baseValue, finalValue } = calculateFinalCommission(item.netPremium, item.commissionPct, item.paymentMethod, item.installments);
-        
         let payMethodShort = item.paymentMethod || '-';
         if (payMethodShort.toUpperCase().includes('PORTO')) payMethodShort = 'CP';
         else if (payMethodShort.toUpperCase().includes('CRÉDITO')) payMethodShort = 'CC';
 
-        return `
-            <tr>
-                <td>${item.id}</td>
-                <td>${fmtDate(item.startDate)}</td>
-                <td>${item.subtype}</td>
-                <td>${item.leadName}</td>
-                <td>${item.insurer}</td>
-                <td class="currency-fmt">${formatMoney(item.netPremium)}</td>
-                <td class="number-fmt">${formatNumber(item.commissionPct)}</td>
-                <td class="currency-fmt">${formatMoney(baseValue)}</td>
-                <td>${payMethodShort}</td>
-                <td>${item.installments}</td>
-                <td class="currency-fmt" style="background-color: #e2efda; font-weight: bold;">${formatMoney(finalValue)}</td>
-            </tr>
-        `;
-    }).join('');
+        workbookXML += `<Row>
+            <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.id)}</Data></Cell>
+            <Cell ss:StyleID="sDate"><Data ss:Type="DateTime">${fmtDate(item.startDate)}</Data></Cell>
+            <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.subtype)}</Data></Cell>
+            <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.leadName)}</Data></Cell>
+            <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.insurer)}</Data></Cell>
+            <Cell ss:StyleID="sCurrency"><Data ss:Type="Number">${fmtNum(item.netPremium)}</Data></Cell>
+            <Cell ss:StyleID="sPercent"><Data ss:Type="Number">${fmtNum(item.commissionPct/100)}</Data></Cell>
+            <Cell ss:StyleID="sCurrency"><Data ss:Type="Number">${fmtNum(baseValue)}</Data></Cell>
+            <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(payMethodShort)}</Data></Cell>
+            <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.installments)}</Data></Cell>
+            <Cell ss:StyleID="sHighlight"><Data ss:Type="Number">${fmtNum(finalValue)}</Data></Cell>
+            <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.collaborator)}</Data></Cell>
+        </Row>`;
+   });
 
-    const excelHTML = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                table { border-collapse: collapse; font-family: Calibri, sans-serif; }
-                td, th { border: 1px solid #d4d4d4; font-size: 11pt; vertical-align: middle; text-align: center; }
-                .header-kpi { background-color: #4472C4; color: white; font-weight: bold; border: 1px solid #000; }
-                .subheader-kpi { background-color: #D9E1F2; font-weight: bold; border: 1px solid #000; }
-                .value-kpi { font-weight: bold; border: 1px solid #000; }
-                .header-table { background-color: #4472C4; color: white; font-weight: bold; }
-                .spacer { border: none; background: none; }
-                .currency-fmt { white-space: nowrap; }
-                .number-fmt { mso-number-format:"\#\,\#\#0\.00"; } 
-            </style>
-        </head>
-        <body>
-            <table>
-                <tr><td colspan="11" class="header-kpi" style="font-size:14pt; padding:10px;">RELATÓRIO DE PRODUÇÃO - ${filterDate}</td></tr>
-                
-                <!-- GERAL -->
-                <tr><td colspan="11" class="spacer">&nbsp;</td></tr>
-                <tr><td colspan="4" class="subheader-kpi">RESUMO GERAL (Vendas + Endossos)</td></tr>
-                <tr>
-                    <td>PRÊMIO LÍQ. TOTAL</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.general.premium)}</td>
-                    <td>COMISSÃO TOTAL</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.general.commission)}</td>
-                    <td>ITENS PRODUZIDOS</td> <td class="value-kpi">${metrics.general.count}</td>
-                </tr>
+   workbookXML += `</Table></Worksheet>`;
 
-                <!-- SEGURO NOVO -->
-                <tr><td colspan="11" class="spacer">&nbsp;</td></tr>
-                <tr><td colspan="4" class="subheader-kpi">SEGURO NOVO (Inclui Renovações de Mercado)</td></tr>
-                <tr>
-                    <td>PRÊMIO LÍQUIDO</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.new.premium)}</td>
-                    <td>COMISSÃO</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.new.commission)}</td>
-                    <td>TICKET MÉDIO</td> <td class="value-kpi currency-fmt">${formatMoney(getAvg(metrics.new.premium, metrics.new.count))}</td>
-                    <td>MÉDIA COMISSÃO</td> <td class="value-kpi number-fmt">${formatNumber(getAvg(metrics.new.commPctSum, metrics.new.count))}%</td>
-                </tr>
+   // --- SHEETS FOR COLLABORATORS ---
+   Object.keys(collaboratorGroups).forEach(collabName => {
+        const items = collaboratorGroups[collabName];
+        let totalPremium = 0;
+        let totalCommission = 0;
+        items.forEach(i => {
+             const { finalValue } = calculateFinalCommission(i.netPremium, i.commissionPct, i.paymentMethod, i.installments);
+             totalPremium += i.netPremium || 0;
+             totalCommission += finalValue;
+        });
 
-                <!-- RENOVAÇÃO -->
-                <tr><td colspan="11" class="spacer">&nbsp;</td></tr>
-                <tr><td colspan="4" class="subheader-kpi">RENOVAÇÕES PRIMME</td></tr>
-                <tr>
-                    <td>PRÊMIO LÍQUIDO</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.renewal.premium)}</td>
-                    <td>COMISSÃO</td> <td class="value-kpi currency-fmt">${formatMoney(metrics.renewal.commission)}</td>
-                    <td>TICKET MÉDIO</td> <td class="value-kpi currency-fmt">${formatMoney(getAvg(metrics.renewal.premium, metrics.renewal.count))}</td>
-                    <td>MÉDIA COMISSÃO</td> <td class="value-kpi number-fmt">${formatNumber(getAvg(metrics.renewal.commPctSum, metrics.renewal.count))}%</td>
-                </tr>
+        // Clean Sheet Name (max 31 chars, no invalid chars)
+        let sheetName = `${collabName.split(' ')[0]} ${filterDate}`;
+        sheetName = sheetName.replace(/[\[\]\*\?\/\\\:]/g, ''); 
 
-                <tr><td colspan="11" class="spacer">&nbsp;</td></tr>
+        workbookXML += `<Worksheet ss:Name="${sheetName}">
+            <Table ss:DefaultColumnWidth="100">
+            <Column ss:Width="150"/>
+            <Column ss:Width="80"/>
+            <Column ss:Width="100"/>
+            <Column ss:Width="200"/>
+            <Column ss:Width="100"/>
+            <Column ss:Width="100"/>
+            <Column ss:Width="80"/>
+            <Column ss:Width="100"/>
+            <Column ss:Width="100"/>
+            <Column ss:Width="60"/>
+            <Column ss:Width="120"/>
+            <Column ss:Width="150"/>
 
-                <!-- DATA TABLE -->
-                <thead>
-                    <tr class="header-table">
-                        <th>ID</th>
-                        <th>Vigência Início</th>
-                        <th>Tipo</th>
-                        <th>Segurado</th>
-                        <th>Seguradora</th>
-                        <th>Prêmio Líquido</th>
-                        <th>% Com</th>
-                        <th>Comissão Base</th>
-                        <th>Forma Pagto</th>
-                        <th>Parc</th>
-                        <th>Comissão Final (85%)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${tableRows}
-                </tbody>
-            </table>
-        </body>
-        </html>
-    `;
+            <Row ss:Height="25">
+                <Cell ss:MergeAcross="11" ss:StyleID="sTitle"><Data ss:Type="String">PRODUÇÃO INDIVIDUAL - ${collabName.toUpperCase()}</Data></Cell>
+            </Row>
+            <Row><Cell></Cell></Row>
+            
+            <Row>
+                <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">TOTAL PRÊMIO</Data></Cell>
+                <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(totalPremium)}</Data></Cell>
+                <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">TOTAL COMISSÃO</Data></Cell>
+                <Cell ss:StyleID="sSummaryBoxCurrency"><Data ss:Type="Number">${fmtNum(totalCommission)}</Data></Cell>
+                <Cell ss:StyleID="sSummaryBox"><Data ss:Type="String">ITENS</Data></Cell>
+                <Cell ss:StyleID="sSummaryBox"><Data ss:Type="Number">${items.length}</Data></Cell>
+            </Row>
+            <Row><Cell></Cell></Row>
 
-    const blob = new Blob([excelHTML], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Relatorio_Producao_${filterDate}.xls`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+            <Row>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">ID</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Vigência Início</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Tipo</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Segurado</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Seguradora</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Prêmio Líquido</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">% Com</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Comissão Base</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Forma Pagto</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Parc</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Comissão Final (85%)</Data></Cell>
+                <Cell ss:StyleID="sHeader"><Data ss:Type="String">Colaborador</Data></Cell>
+            </Row>`;
+        
+        items.forEach(item => {
+             const { baseValue, finalValue } = calculateFinalCommission(item.netPremium, item.commissionPct, item.paymentMethod, item.installments);
+             let payMethodShort = item.paymentMethod || '-';
+             if (payMethodShort.toUpperCase().includes('PORTO')) payMethodShort = 'CP';
+             else if (payMethodShort.toUpperCase().includes('CRÉDITO')) payMethodShort = 'CC';
+
+             workbookXML += `<Row>
+                <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.id)}</Data></Cell>
+                <Cell ss:StyleID="sDate"><Data ss:Type="DateTime">${fmtDate(item.startDate)}</Data></Cell>
+                <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.subtype)}</Data></Cell>
+                <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.leadName)}</Data></Cell>
+                <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.insurer)}</Data></Cell>
+                <Cell ss:StyleID="sCurrency"><Data ss:Type="Number">${fmtNum(item.netPremium)}</Data></Cell>
+                <Cell ss:StyleID="sPercent"><Data ss:Type="Number">${fmtNum(item.commissionPct/100)}</Data></Cell>
+                <Cell ss:StyleID="sCurrency"><Data ss:Type="Number">${fmtNum(baseValue)}</Data></Cell>
+                <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(payMethodShort)}</Data></Cell>
+                <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.installments)}</Data></Cell>
+                <Cell ss:StyleID="sHighlight"><Data ss:Type="Number">${fmtNum(finalValue)}</Data></Cell>
+                <Cell ss:StyleID="sDataCenter"><Data ss:Type="String">${fmtStr(item.collaborator)}</Data></Cell>
+             </Row>`;
+        });
+
+        workbookXML += `</Table></Worksheet>`;
+   });
+
+   workbookXML += `</Workbook>`;
+
+   const blob = new Blob([workbookXML], { type: 'application/vnd.ms-excel' });
+   const url = URL.createObjectURL(blob);
+   const link = document.createElement("a");
+   link.href = url;
+   link.download = `Relatorio_Producao_${filterDate}.xls`;
+   document.body.appendChild(link);
+   link.click();
+   document.body.removeChild(link);
   };
 
   return (
