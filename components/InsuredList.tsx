@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Lead, LeadStatus, Endorsement } from '../types';
-import { Search, FileText, Car, Edit, XCircle, AlertTriangle } from './Icons';
+import { Search, FileText, Car, Edit, XCircle, AlertTriangle, Calendar, DollarSign, Percent, CreditCard, Shield } from './Icons';
 
 interface InsuredListProps {
   leads: Lead[];
@@ -80,21 +80,26 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
   };
 
   return (
-    <div className={`border rounded-xl p-2 shadow-sm relative transition-colors ${isCancelled ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
-       {/* Card Content Compact */}
-       <div className="flex flex-col gap-0.5">
+    <div className={`border rounded-xl p-5 shadow-sm relative transition-colors ${isCancelled ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+       {/* Card Content Expanded to match Ranking Size */}
+       <div className="flex flex-col gap-4">
           
-          <div className="flex justify-between items-start">
-             <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                   <Car className="w-3 h-3 text-gray-400" />
-                   <span className="font-bold text-gray-800 text-sm">{lead.vehicleModel}</span>
-                   <span className="text-[10px] text-gray-500">({lead.vehicleYear})</span>
+          {/* Header Section */}
+          <div className="flex justify-between items-start border-b border-gray-100 pb-3">
+             <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3">
+                   <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <Car className="w-6 h-6" />
+                   </div>
+                   <div>
+                       <h3 className="font-bold text-gray-900 text-lg leading-tight">{lead.vehicleModel}</h3>
+                       <p className="text-sm text-gray-500 font-medium">Ano: {lead.vehicleYear}</p>
+                   </div>
                 </div>
                 
                 {isCancelled && (
-                    <div className="mt-0.5">
-                        <span className="bg-red-100 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded uppercase border border-red-200">
+                    <div className="mt-1">
+                        <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded uppercase border border-red-200">
                             Cancelado
                         </span>
                     </div>
@@ -103,15 +108,15 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
              
              {/* Endorsement Alert Badges */}
              {lead.endorsements && lead.endorsements.length > 0 && (
-                <div className="flex flex-col gap-0.5 items-end">
+                <div className="flex flex-col gap-1 items-end">
                    {lead.endorsements.map(endorsement => (
                       <button 
                         key={endorsement.id}
                         onClick={() => setShowEndorseInfo(endorsement.id === showEndorseInfo ? null : endorsement.id)}
-                        className="flex items-center gap-1 text-[10px] bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded border border-yellow-200 hover:bg-yellow-100 transition-colors"
+                        className="flex items-center gap-1 text-[10px] font-bold bg-yellow-50 text-yellow-700 px-2 py-1 rounded border border-yellow-200 hover:bg-yellow-100 transition-colors uppercase tracking-wide"
                       >
                          <AlertTriangle className="w-3 h-3" />
-                         Endosso
+                         Ver Endosso
                       </button>
                    ))}
                 </div>
@@ -120,58 +125,85 @@ const VehicleCard: React.FC<{ lead: Lead; onUpdate: (l: Lead) => void }> = ({ le
 
           {/* Endorsement Info Popover (In-Card) */}
           {showEndorseInfo && (
-            <div className="bg-yellow-50 p-2 rounded border border-yellow-200 text-xs text-gray-700 animate-fade-in mb-1">
+            <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 text-sm text-gray-700 animate-fade-in">
                 {lead.endorsements?.filter(e => e.id === showEndorseInfo).map(e => (
-                   <div key={e.id} className="space-y-0.5">
-                      <p className="font-bold text-yellow-800 border-b border-yellow-200 pb-0.5 mb-0.5">Endosso</p>
-                      <p>Veículo: <b>{e.vehicleModel}</b></p>
-                      <p>Prêmio: <b>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.netPremium)}</b></p>
-                      <p>Pagamento: <b>{e.paymentMethod} ({e.installments})</b></p>
-                      <p>Vigência: <b>{formatDisplayDate(e.startDate)}</b></p>
+                   <div key={e.id} className="space-y-1">
+                      <p className="font-bold text-yellow-800 border-b border-yellow-200 pb-1 mb-1 flex items-center gap-2">
+                          <Edit className="w-4 h-4"/> Detalhes do Endosso
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                          <p>Veículo: <b>{e.vehicleModel}</b></p>
+                          <p>Prêmio: <b>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(e.netPremium)}</b></p>
+                          <p>Pagamento: <b>{e.paymentMethod} ({e.installments})</b></p>
+                          <p>Vigência: <b>{formatDisplayDate(e.startDate)}</b></p>
+                      </div>
                    </div>
                 ))}
             </div>
           )}
 
-          {/* Dates & Financial Info Compact */}
-          <div className="flex flex-col gap-0.5">
-             {/* Datas de Vigência */}
-             <div className="flex items-center gap-2 text-[10px]">
-                <div className="flex items-center gap-1 text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                    <span className="font-bold">Início:</span>
-                    <span>{formatDisplayDate(lead.dealInfo?.startDate)}</span>
-                </div>
-                <div className="flex items-center gap-1 text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
-                    <span className="font-bold">Fim:</span>
-                    <span>{formatDisplayDate(lead.dealInfo?.endDate)}</span>
-                </div>
+          {/* Dates & Financial Info - Expanded Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+             {/* Datas Block */}
+             <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-2">
+                 <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> Vigência
+                 </p>
+                 <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600">Início:</span>
+                    <span className="font-bold text-gray-900">{formatDisplayDate(lead.dealInfo?.startDate)}</span>
+                 </div>
+                 <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600">Fim:</span>
+                    <span className="font-bold text-indigo-700">{formatDisplayDate(lead.dealInfo?.endDate)}</span>
+                 </div>
              </div>
 
-             {/* Financial Info Grid Compact */}
-             <div className="grid grid-cols-3 gap-1 text-[10px] text-gray-600 bg-gray-50 p-1.5 rounded border border-gray-100">
-                <div>Prêmio: <b className="text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.dealInfo?.netPremium || 0)}</b></div>
-                <div>Comissão: <b className="text-green-600">{lead.dealInfo?.commission}%</b></div>
-                <div>Parc.: <b>{lead.dealInfo?.installments}</b></div>
+             {/* Financial Block */}
+             <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-2">
+                 <p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1">
+                    <DollarSign className="w-3 h-3" /> Financeiro
+                 </p>
+                 <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600">Prêmio:</span>
+                    <span className="font-bold text-gray-900">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.dealInfo?.netPremium || 0)}</span>
+                 </div>
+                 <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600">Comissão:</span>
+                    <span className="font-bold text-green-600">{lead.dealInfo?.commission}%</span>
+                 </div>
              </div>
+          </div>
+          
+          {/* Details Row */}
+          <div className="flex items-center gap-4 text-xs text-gray-600 px-1">
+              <div className="flex items-center gap-1">
+                  <CreditCard className="w-3 h-3 text-gray-400" />
+                  <span>{lead.dealInfo?.paymentMethod || 'N/A'} ({lead.dealInfo?.installments})</span>
+              </div>
+              <div className="flex items-center gap-1">
+                  <Shield className="w-3 h-3 text-gray-400" />
+                  <span>{lead.dealInfo?.insurer || 'N/A'}</span>
+              </div>
           </div>
 
           {/* Footer: Closed By + Actions */}
-          <div className="flex items-center justify-between pt-1 border-t border-gray-100 mt-0.5">
-             <span className="text-[10px] text-gray-500">
-                Resp: <b className="text-indigo-600">{lead.assignedTo || 'Sistema'}</b>
-             </span>
+          <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-1">
+             <div className="text-xs text-gray-500">
+                Responsável: <b className="text-indigo-600">{lead.assignedTo || 'Sistema'}</b>
+             </div>
              
              {!isCancelled && (
-                 <div className="flex gap-1">
+                 <div className="flex gap-2">
                     <button 
                     onClick={() => setShowEndorseModal(true)}
-                    className="flex items-center gap-1 text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded hover:bg-blue-100 border border-blue-200 transition-colors"
+                    className="flex items-center gap-1 text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
                     >
                     <Edit className="w-3 h-3" /> Endossar
                     </button>
                     <button 
                     onClick={handleCancelLead}
-                    className="flex items-center gap-1 text-[10px] bg-red-50 text-red-700 px-1.5 py-0.5 rounded hover:bg-red-100 border border-red-200 transition-colors"
+                    className="flex items-center gap-1 text-xs font-bold bg-red-50 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-100 border border-red-200 transition-colors"
                     >
                     <XCircle className="w-3 h-3" /> Cancelar
                     </button>
@@ -286,44 +318,45 @@ export const InsuredList: React.FC<InsuredListProps> = ({ leads, onUpdateLead })
   return (
     <div className="h-full flex flex-col">
        {/* Filters */}
-       <div className="mb-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center gap-2">
-             <div className="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
-                <FileText className="w-5 h-5" />
+       <div className="mb-6 flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-3">
+             <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                <FileText className="w-6 h-6" />
              </div>
              <div>
-                <h2 className="text-lg font-bold text-gray-800">Segurados</h2>
+                <h2 className="text-xl font-bold text-gray-800">Segurados</h2>
+                <p className="text-xs text-gray-500">Gestão de Apólices e Endossos</p>
              </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col md:flex-row gap-2">
              <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input type="text" placeholder="Nome ou Telefone..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-3 py-1.5 border rounded text-sm w-full md:w-64 focus:ring-1 focus:ring-blue-500 outline-none" />
+                <input type="text" placeholder="Nome ou Telefone..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm w-full md:w-64 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
              </div>
-             <input type="month" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="border rounded px-3 py-1.5 text-sm bg-white focus:ring-1 focus:ring-blue-500 outline-none" />
+             <input type="month" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
           </div>
        </div>
 
        {/* List */}
-       <div className="flex flex-col gap-4 pb-4 overflow-y-auto flex-1 max-w-4xl mx-auto w-full px-1">
+       <div className="flex flex-col gap-6 pb-4 overflow-y-auto flex-1 max-w-7xl mx-auto w-full px-1">
           {Object.keys(groupedLeads).length > 0 ? (
              Object.values(groupedLeads).map((group) => (
-                <div key={group.phone} className="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+                <div key={group.phone} className="bg-gray-50 border border-gray-200 rounded-2xl p-6 shadow-sm">
                    {/* Client Header */}
-                   <div className="flex justify-between items-center mb-3 border-b border-gray-200 pb-2">
+                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-gray-200 pb-3 gap-2">
                       <div>
-                         <h3 className="font-bold text-gray-900 text-lg">{group.clientName}</h3>
+                         <h3 className="font-bold text-gray-900 text-xl">{group.clientName}</h3>
                          <p className="text-sm text-gray-500 flex items-center gap-1">
-                            <span className="bg-gray-200 px-1.5 rounded text-xs font-mono">{group.phone}</span>
+                            <span className="bg-gray-200 px-2 py-0.5 rounded text-xs font-mono font-medium">{group.phone}</span>
                          </p>
                       </div>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-bold">
-                         {group.leads.length} Veículo(s)
+                      <span className="self-start md:self-center text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold border border-blue-200">
+                         {group.leads.length} Veículo(s) Segurado(s)
                       </span>
                    </div>
 
-                   {/* Vehicles Grid - Compacted */}
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                   {/* Vehicles Grid - Expanded to 2 cols for large cards */}
+                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                       {group.leads.map(lead => (
                          <VehicleCard key={lead.id} lead={lead} onUpdate={onUpdateLead} />
                       ))}
@@ -331,8 +364,8 @@ export const InsuredList: React.FC<InsuredListProps> = ({ leads, onUpdateLead })
                 </div>
              ))
           ) : (
-             <div className="py-10 text-center text-gray-500 bg-white rounded-lg border-2 border-dashed border-gray-300">
-                <FileText className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+             <div className="py-12 text-center text-gray-400 bg-white rounded-xl border-2 border-dashed border-gray-300">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p className="text-sm font-medium">Nenhum segurado encontrado.</p>
              </div>
           )}
