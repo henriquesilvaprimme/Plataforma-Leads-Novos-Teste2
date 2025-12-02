@@ -42,6 +42,9 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
           if (inst >= 4) finalValue = baseValue / inst;
       }
 
+      // Aplica regra de 85% sobre o valor final
+      finalValue = finalValue * 0.85;
+
       return { baseValue, finalValue };
   };
 
@@ -278,7 +281,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
                         <th>Comissão Base</th>
                         <th>Forma Pagto</th>
                         <th>Parc</th>
-                        <th>Comissão Final</th>
+                        <th>Comissão Final (85%)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -309,7 +312,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
              </div>
              <div>
                 <h2 className="text-xl font-bold text-gray-800">Relatórios de Produção</h2>
-                <p className="text-xs text-gray-500">Financeiro, Comissões e Performance</p>
+                <p className="text-xs text-gray-500">Financeiro, Comissões (85%) e Performance</p>
              </div>
           </div>
           
@@ -353,7 +356,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
                        </div>
                    </div>
                    <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-4 rounded-xl shadow-lg text-white">
-                       <p className="text-xs font-medium text-emerald-100 uppercase">Comissão Total (Final)</p>
+                       <p className="text-xs font-medium text-emerald-100 uppercase">Comissão Total (Final 85%)</p>
                        <p className="text-2xl font-bold mt-1">
                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(metrics.general.commission)}
                        </p>
@@ -384,7 +387,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
                            </p>
                        </div>
                        <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
-                           <p className="text-[10px] text-gray-500 uppercase font-bold">Comissão</p>
+                           <p className="text-[10px] text-gray-500 uppercase font-bold">Comissão (85%)</p>
                            <p className="text-lg font-bold text-green-700">
                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(metrics.new.commission)}
                            </p>
@@ -437,7 +440,7 @@ export const Reports: React.FC<ReportsProps> = ({ leads, renewed, renewals = [] 
                            </p>
                        </div>
                        <div className="bg-white p-3 rounded-lg border border-indigo-100 shadow-sm">
-                           <p className="text-[10px] text-gray-500 uppercase font-bold">Comissão</p>
+                           <p className="text-[10px] text-gray-500 uppercase font-bold">Comissão (85%)</p>
                            <p className="text-lg font-bold text-green-700">
                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(metrics.renewal.commission)}
                            </p>
