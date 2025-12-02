@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Dashboard } from './components/Dashboard';
@@ -322,6 +323,7 @@ export default function App() {
                             <RenewedList 
                                 leads={renewedCollection} 
                                 onUpdateLead={handleUpdateLead} 
+                                currentUser={currentUser}
                             />
                         </div>
                     ) : <Navigate to="/dashboard" />
