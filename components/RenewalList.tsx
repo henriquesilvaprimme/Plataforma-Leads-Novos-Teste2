@@ -674,7 +674,8 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
             matchesDate = endDate.startsWith(filterDate);
         }
 
-        const isAssignedToUser = !currentUser || currentUser.isAdmin || currentUser.isRenovations || lead.assignedTo === currentUser.name; 
+        // Somente Admin vê tudo. Outros (incluindo Renovações e Comum) veem apenas o que lhes foi atribuído
+        const isAssignedToUser = !currentUser || currentUser.isAdmin || lead.assignedTo === currentUser.name; 
 
         return matchesSearch && matchesStatus && matchesDate && isAssignedToUser;
     }).sort((a, b) => {
