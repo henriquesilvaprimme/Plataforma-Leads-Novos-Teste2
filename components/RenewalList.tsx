@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus, User, DealInfo } from '../types';
 import { Car, Phone, Calendar, DollarSign, Percent, CreditCard, Users, RefreshCw, Bell, Search, Shield, AlertTriangle, Edit, Check, Plus } from './Icons';
@@ -643,7 +644,7 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
 
 export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdateLead, onAddLead, currentUser }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterDate, setFilterDate] = useState<string>('');
+    const [filterDate, setFilterDate] = useState<string>(() => new Date().toISOString().slice(0, 7));
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
     
