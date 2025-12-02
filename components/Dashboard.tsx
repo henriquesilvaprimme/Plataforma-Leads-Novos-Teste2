@@ -100,6 +100,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
   // basta contar quantos CLOSED existem no array filtrado.
   const renewalSalesSpecificCount = filteredRenewalLeads.filter(l => l.status === LeadStatus.CLOSED).length;
 
+  // Calculation of Total Potential Premium for Renewals
+  const totalRenewalPotential = filteredRenewalLeads.reduce((acc, lead) => acc + (lead.dealInfo?.netPremium || 0), 0);
+
   const calculateMetrics = (subset: Lead[], isRenewalSection: boolean): Metrics => {
     // Total agora é baseado na contagem filtrada
     // POREM, se for Renovações e ADMIN (ou Usuário Renovações), usa o Total Manual para calculo da meta/conversão global
@@ -273,6 +276,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                             </div>
                         ) : (
                             <p className="text-2xl font-extrabold text-gray-900">{metrics.total}</p>
+                        )}
+                        
+                        {/* Total Premium to Renew Display */}
+                        {section === 'RENEWAL' && (
+                            <div className="mt-2 border-t border-gray-100 pt-1">
+                                <p className="text-[9px] text-gray-400 font-bold uppercase">Total Prêmios a Renovar</p>
+                                <p className="text-sm font-extrabold text-indigo-600">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalRenewalPotential)}
+                                </p>
+                            </div>
                         )}
                     </div>
                     
