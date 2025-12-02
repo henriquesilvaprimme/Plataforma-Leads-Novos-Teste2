@@ -70,39 +70,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
           // Para Leads Novos: Filtra rigorosamente pela data de criação
           return lead.createdAt && lead.createdAt.startsWith(filterDate);
       } else {
-          // Para Renovações (Total/Pendentes): Filtra pelo Fim de Vigência (Mês de Renovação)
+          // Para Renovações
+          // Se o lead já foi RENOVAÇÃO FECHADA (está na aba Renovados), ele tem status CLOSED.
+          // Nesse caso, o 'endDate' dele já é o do ANO QUE VEM.
+          // Para ele aparecer no mês atual (mês da venda), precisamos olhar o 'startDate' (início da nova vigência) ou 'closedAt'.
+          if (lead.status === LeadStatus.CLOSED) {
+              return (lead.dealInfo?.startDate && lead.dealInfo.startDate.startsWith(filterDate)) || 
+                     (lead.closedAt && lead.closedAt.startsWith(filterDate));
+          }
+          // Para Renovações Pendentes, filtramos pelo Fim de Vigência (Mês de expiração)
           return lead.dealInfo?.endDate && lead.dealInfo.endDate.startsWith(filterDate);
       }
   };
 
-  // --- LOGIC CHANGE: Split based on 'Renovação Primme' vs Others ---
-  // Combine all passed data first to ensure we catch cross-pollination
-  const allLeads = [...newLeadsData, ...renewalLeadsData];
-
-  // 1. Leads for 'RENEWAL' Section (Only 'Renovação Primme')
-  const filteredRenewalLeads = allLeads
-    .filter(l => l.insuranceType === 'Renovação Primme')
+  // --- SEPARATION OF DATA SOURCES ---
+  
+  // 1. Leads for 'RENEWAL' Section (From Renovações + Renovados Tabs)
+  const filteredRenewalLeads = renewalLeadsData
     .filter(userFilter)
     .filter(l => dateFilter(l, true));
 
-  // 2. Leads for 'NEW' Section (Everything else: Novo, Indicação, and 'Renovação' standard)
-  const filteredNewLeads = allLeads
-    .filter(l => l.insuranceType !== 'Renovação Primme')
+  // 2. Leads for 'NEW' Section (From Meus Leads Tab)
+  const filteredNewLeads = newLeadsData
     .filter(userFilter)
     .filter(l => dateFilter(l, false));
 
   // Lógica Específica para "Renovados" (Vendas na aba Renovações)
-  // Deve buscar leads com status CLOSED e closedAt correspondente ao filtro
-  // Agora apenas dentro do universo 'Renovação Primme'
-  const renewalSalesSpecificCount = filteredRenewalLeads.filter(l => {
-      const isClosed = l.status === LeadStatus.CLOSED;
-      // Filtra por closedAt se o lead tiver essa data, caso contrário tenta usar startDate como fallback ou falha
-      const matchesClosedDate = l.closedAt 
-          ? l.closedAt.startsWith(filterDate) 
-          : (l.dealInfo?.startDate && l.dealInfo.startDate.startsWith(filterDate)); // Fallback para leads antigos sem closedAt
-      
-      return isClosed && matchesClosedDate;
-  }).length;
+  // Como agora filtramos o universo corretamente pelo 'startDate' para fechados,
+  // basta contar quantos CLOSED existem no array filtrado.
+  const renewalSalesSpecificCount = filteredRenewalLeads.filter(l => l.status === LeadStatus.CLOSED).length;
 
   const calculateMetrics = (subset: Lead[], isRenewalSection: boolean): Metrics => {
     // Total agora é baseado na contagem filtrada
@@ -113,11 +109,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
     let sales = subset.filter(l => l.status === LeadStatus.CLOSED).length;
 
     if (isRenewalSection) {
-        // Mostra o total manual para Admin E usuários de Renovação
-        if (isAdmin || currentUser?.isRenovations) {
+        // Se houver um total manual definido, usamos ele como base para o cálculo de meta, 
+        // mas somamos as vendas atuais para refletir o progresso real se o manual for apenas o "pendente inicial"
+        if ((isAdmin || currentUser?.isRenovations) && manualRenewalTotal > 0) {
+             // Opcional: Se quiser que o total seja estático, use = manualRenewalTotal. 
+             // Se quiser que seja dinâmico: manualRenewalTotal.
              total = manualRenewalTotal;
         }
-        // Override Sales com a lógica específica de closedAt
         sales = renewalSalesSpecificCount;
     }
     
@@ -134,12 +132,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
     let itauCount = 0;
     let othersCount = 0;
 
-    // Para calcular os financeiros e contadores de seguradora, 
-    // se for renovação, devemos usar os leads que compõem o número de vendas (renewalSalesSpecificCount)
-    // Se for novo, usa o subset (que já está filtrado por createdAt)
-    const leadsForStats = isRenewalSection 
-        ? filteredRenewalLeads.filter(l => l.status === LeadStatus.CLOSED && (l.closedAt ? l.closedAt.startsWith(filterDate) : (l.dealInfo?.startDate && l.dealInfo.startDate.startsWith(filterDate))))
-        : subset.filter(l => l.status === LeadStatus.CLOSED);
+    // Para calcular os financeiros e contadores de seguradora, usamos os leads fechados do subset
+    const leadsForStats = subset.filter(l => l.status === LeadStatus.CLOSED);
 
     leadsForStats.forEach(lead => {
         if (lead.dealInfo) {
