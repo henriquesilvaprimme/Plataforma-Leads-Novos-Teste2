@@ -393,8 +393,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                                     data={pieData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={28}
-                                    outerRadius={35}
+                                    innerRadius={40}
+                                    outerRadius={55}
                                     dataKey="value"
                                     startAngle={90}
                                     endAngle={-270}
@@ -404,7 +404,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
-                                <Tooltip />
+                                <Tooltip 
+                                    cursor={false}
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0];
+                                            if (data.name === 'Restante') return null;
+                                            return (
+                                                 <div className="bg-white p-2 border border-gray-100 shadow-sm rounded text-xs font-bold">
+                                                    <span style={{ color: data.payload.fill }}>{data.name}: {data.value.toFixed(1)}%</span>
+                                                 </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none pt-2">
