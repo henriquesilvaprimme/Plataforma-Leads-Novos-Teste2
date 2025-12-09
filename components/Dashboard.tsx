@@ -184,11 +184,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
     ? calculateMetrics(filteredNewLeads, false) 
     : calculateMetrics(filteredRenewalLeads, true);
 
-  const pieData = [
-    { name: 'Renovados', value: metrics.sales, color: '#16a34a' }, 
-    { name: 'Perdidos', value: metrics.lost, color: '#dc2626' }, 
-    { name: 'Pendentes', value: Math.max(0, metrics.total - metrics.sales - metrics.lost), color: '#e5e7eb' }, 
-  ];
+  // Lógica de visualização do gráfico:
+  // Se for NEW: Mantém a lógica de distribuição (Renovados, Perdidos, Pendentes) - embora "Renovados" aqui seja Vendas
+  // Se for RENEWAL: Mostra apenas o progresso da conversão (Completado vs Restante)
+  let pieData;
+
+  if (section === 'RENEWAL') {
+      const remaining = Math.max(0, 100 - metrics.conversionRate);
+      pieData = [
+          { name: 'Renovado', value: metrics.conversionRate, color: '#16a34a' },
+          { name: 'Restante', value: remaining, color: '#f3f4f6' }
+      ];
+  } else {
+      pieData = [
+          { name: 'Fechados', value: metrics.sales, color: '#16a34a' }, 
+          { name: 'Perdidos', value: metrics.lost, color: '#dc2626' }, 
+          { name: 'Pendentes', value: Math.max(0, metrics.total - metrics.sales - metrics.lost), color: '#e5e7eb' }, 
+      ];
+  }
 
   const handleSaveTotal = () => {
      const val = parseInt(tempTotal);
@@ -380,18 +393,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                                     data={pieData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={25}
-                                    outerRadius={35}
-                                    paddingAngle={2}
+                                    innerRadius={40}
+                                    outerRadius={55}
                                     dataKey="value"
                                     startAngle={90}
                                     endAngle={-270}
+                                    stroke="none"
                                 >
                                     {pieData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
-                                <Tooltip />
+                                <Tooltip 
+                                    cursor={false}
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            const data = payload[0];
+                                            if (data.name === 'Restante') return null;
+                                            return (
+                                                 <div className="bg-white p-2 border border-gray-100 shadow-sm rounded text-xs font-bold">
+                                                    <span style={{ color: data.payload.fill }}>{data.name}: {data.value.toFixed(1)}%</span>
+                                                 </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none pt-2">
