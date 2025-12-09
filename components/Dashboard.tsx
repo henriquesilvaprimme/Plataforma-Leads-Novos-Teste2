@@ -184,11 +184,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
     ? calculateMetrics(filteredNewLeads, false) 
     : calculateMetrics(filteredRenewalLeads, true);
 
-  const pieData = [
-    { name: 'Renovados', value: metrics.sales, color: '#16a34a' }, 
-    { name: 'Perdidos', value: metrics.lost, color: '#dc2626' }, 
-    { name: 'Pendentes', value: Math.max(0, metrics.total - metrics.sales - metrics.lost), color: '#e5e7eb' }, 
-  ];
+  // Lógica de visualização do gráfico:
+  // Se for NEW: Mantém a lógica de distribuição (Renovados, Perdidos, Pendentes) - embora "Renovados" aqui seja Vendas
+  // Se for RENEWAL: Mostra apenas o progresso da conversão (Completado vs Restante)
+  let pieData;
+
+  if (section === 'RENEWAL') {
+      const remaining = Math.max(0, 100 - metrics.conversionRate);
+      pieData = [
+          { name: 'Renovado', value: metrics.conversionRate, color: '#16a34a' },
+          { name: 'Restante', value: remaining, color: '#f3f4f6' }
+      ];
+  } else {
+      pieData = [
+          { name: 'Fechados', value: metrics.sales, color: '#16a34a' }, 
+          { name: 'Perdidos', value: metrics.lost, color: '#dc2626' }, 
+          { name: 'Pendentes', value: Math.max(0, metrics.total - metrics.sales - metrics.lost), color: '#e5e7eb' }, 
+      ];
+  }
 
   const handleSaveTotal = () => {
      const val = parseInt(tempTotal);
@@ -380,12 +393,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ newLeadsData, renewalLeads
                                     data={pieData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={25}
+                                    innerRadius={28}
                                     outerRadius={35}
-                                    paddingAngle={2}
                                     dataKey="value"
                                     startAngle={90}
                                     endAngle={-270}
+                                    stroke="none"
                                 >
                                     {pieData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
