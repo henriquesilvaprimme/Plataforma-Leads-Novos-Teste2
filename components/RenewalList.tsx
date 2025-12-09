@@ -303,6 +303,13 @@ const RenewalCard: React.FC<{ lead: Lead, users: User[], onUpdate: (l: Lead) => 
                         </div>
 
                         <div className="flex items-center gap-2">
+                            <Shield className="w-3 h-3 text-gray-400 shrink-0" />
+                            <span className="text-gray-700 font-medium">Seguradora: 
+                                <span className="text-gray-900 ml-1">{lead.dealInfo?.insurer || '-'}</span>
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
                             <DollarSign className="w-3 h-3 text-gray-400 shrink-0" />
                             <span className="text-gray-700 font-medium">Prêmio: 
                                 <span className="text-gray-900 ml-1">
@@ -674,7 +681,8 @@ export const RenewalList: React.FC<RenewalListProps> = ({ leads, users, onUpdate
             matchesDate = endDate.startsWith(filterDate);
         }
 
-        const isAssignedToUser = !currentUser || currentUser.isAdmin || currentUser.isRenovations || lead.assignedTo === currentUser.name; 
+        // Somente Admin vê tudo. Outros (incluindo Renovações e Comum) veem apenas o que lhes foi atribuído
+        const isAssignedToUser = !currentUser || currentUser.isAdmin || lead.assignedTo === currentUser.name; 
 
         return matchesSearch && matchesStatus && matchesDate && isAssignedToUser;
     }).sort((a, b) => {
