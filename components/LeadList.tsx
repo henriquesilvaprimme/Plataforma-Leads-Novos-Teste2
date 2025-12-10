@@ -33,7 +33,7 @@ const formatDisplayDate = (dateString?: string) => {
 const isToday = (dateString?: string) => {
     if (!dateString) return false;
     if (dateString.includes('-')) {
-        const date = new Date(dateString);
+        const date = new Date(dateString.includes('T') ? dateString : `${dateString}T00:00:00`);
         const today = new Date();
         return date.getDate() === today.getDate() &&
             date.getMonth() === today.getMonth() &&
@@ -187,7 +187,7 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
     switch(status) {
       case LeadStatus.NEW: return 'bg-blue-100 text-blue-800 border-blue-200';
       case LeadStatus.CLOSED: return 'bg-green-100 text-green-800 border-green-200';
-      case LeadStatus.SCHEDULED: return 'bg-purple-100 text-purple-800 border-purple-200';
+      case LeadStatus.SCHEDULED: return 'bg-blue-100 text-blue-800 border-blue-200'; // Alterado para azul
       case LeadStatus.LOST: return 'bg-red-100 text-red-800 border-red-200';
       case LeadStatus.IN_CONTACT: return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default: return 'bg-gray-100 text-gray-800';
@@ -230,9 +230,9 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
                         )}
                         
                         {lead.status === LeadStatus.SCHEDULED && lead.scheduledDate && !isEditingStatus && (
-                            <span className="text-[10px] font-medium text-purple-700 flex items-center gap-1 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                            <span className="text-[10px] font-medium text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                                 <Calendar className="w-3 h-3" />
-                                {new Date(lead.scheduledDate).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' })}
+                                {formatDisplayDate(lead.scheduledDate)}
                             </span>
                         )}
                     </div>
@@ -412,7 +412,7 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
                              <div>
                                 <span className="block text-gray-400 text-[10px] uppercase">Prêmio</span>
                                 <span className="font-semibold text-green-700">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(lead.dealInfo?.netPremium || 0)}
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((lead.dealInfo?.netPremium || 0) * 1.0738)}
                                 </span>
                             </div>
                              <div>
@@ -444,10 +444,10 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
                     {needsDate && (
                         <div>
                             <label className="text-[10px] font-bold text-gray-500 uppercase mb-0.5 block">
-                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3"/> Data e Hora</span>
+                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3"/> Data (dd/mm/aaaa)</span>
                             </label>
                             <input 
-                                type="datetime-local" 
+                                type="date" 
                                 disabled={!isEditingStatus}
                                 className={`
                                     w-full border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500 outline-none shadow-sm
