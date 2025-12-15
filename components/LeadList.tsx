@@ -178,11 +178,11 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
 
   const handleConfirmUser = () => {
       if (!selectedUser) return;
-      // Atualiza a data de criação para agora ao atribuir, para que suba para o topo da lista
       const updatedLead = { 
           ...lead, 
           assignedTo: selectedUser,
-          createdAt: new Date().toISOString() 
+          // Set assignedAt when Admin assigns, but keep original createdAt
+          assignedAt: new Date().toISOString()
       };
       onUpdate(updatedLead);
       setIsEditingUser(false);
@@ -376,7 +376,10 @@ const LeadCard: React.FC<{ lead: Lead; users: User[]; onUpdate: (l: Lead) => voi
 
         <div className="mt-1 pt-1 flex items-center justify-end border-t border-gray-200">
             <div className="text-[10px] text-gray-400 font-medium">
-                Criado em: {formatCreationDate(lead.createdAt)}
+                {!isAdmin && lead.assignedAt 
+                    ? `Recebido em: ${formatCreationDate(lead.assignedAt)}`
+                    : `Criado em: ${formatCreationDate(lead.createdAt)}`
+                }
             </div>
         </div>
       </div>
@@ -695,11 +698,20 @@ export const LeadList: React.FC<LeadListProps> = ({ leads, users, onSelectLead, 
 
     return matchesSearch && matchesStatus && matchesDate && isAssignedToUser;
   }).sort((a, b) => {
-    // Ordenação estrita por data de criação (mais recente primeiro)
-    // Para que leads novos (recém-atribuídos) apareçam no topo
-    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return dateB - dateA;
+    // Sorting logic adjusted:
+    // If ADMIN: Strict creation date sort (original order)
+    // If COMMON: Sort by assigned date (if present) OR creation date (moves recent assignments to top)
+    
+    if (currentUser?.isAdmin) {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+    } else {
+        const getSortDate = (l: Lead) => l.assignedAt || l.createdAt;
+        const dateA = getSortDate(a) ? new Date(getSortDate(a)!).getTime() : 0;
+        const dateB = getSortDate(b) ? new Date(getSortDate(b)!).getTime() : 0;
+        return dateB - dateA;
+    }
   });
 
   const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
