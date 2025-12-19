@@ -16,8 +16,6 @@ const firebaseConfig = {
 };
 
 // Exportação explícita da constante de verificação
-// Se a chave for a default do código (SUA_API_KEY_AQUI), considera não configurado.
-// Como você já preencheu, a verificação passa.
 export const isFirebaseConfigured = firebaseConfig.apiKey !== "SUA_API_KEY_AQUI";
 
 let app: any;
@@ -112,6 +110,8 @@ export const mapDocumentToLead = (doc: any): Lead => {
         usuarioId: data.usuarioId,
         registeredAt: data.registeredAt,
         assignedAt: data.assignedAt,
+        commissionPaid: data.commissionPaid || false,
+        commissionCP: data.commissionCP || false,
         dealInfo: (data.Seguradora || data.PremioLiquido || data.VigenciaInicial) ? {
             insurer: data.Seguradora || '',
             netPremium: parseCurrency(data.PremioLiquido),
@@ -135,7 +135,7 @@ export const mapDocumentToUser = (doc: any): User => {
         email: data.email || '',
         isActive: data.status === 'Ativo', 
         isAdmin: data.tipo === 'Admin',
-        isRenovations: data.isRenovations || data.tipo === 'Renovações' || false, // Garante leitura correta
+        isRenovations: data.isRenovations || data.tipo === 'Renovações' || false, 
         avatarColor: 'bg-indigo-600'
     } as User;
 };
@@ -144,7 +144,6 @@ export const mapDocumentToUser = (doc: any): User => {
 
 const mapAppToDb = (collectionName: string, data: any) => {
     if (collectionName === 'usuarios') {
-        // Lógica para definir o TIPO baseado nas flags
         let tipoUsuario = 'Comum';
         if (data.isAdmin) {
             tipoUsuario = 'Admin';
@@ -159,13 +158,12 @@ const mapAppToDb = (collectionName: string, data: any) => {
             email: data.email || '',
             id: data.id || '',
             status: data.isActive ? 'Ativo' : 'Inativo',
-            tipo: tipoUsuario, // Salva como 'Renovações' se for o caso
+            tipo: tipoUsuario,
             isRenovations: data.isRenovations || false,
             updatedAt: new Date().toISOString()
         };
     }
 
-    // Proteção rigorosa contra undefined para evitar erro no addDoc/updateDoc
     const dbLead: any = {
         Nome: data.name || '',
         Modelo: data.vehicleModel || '',
@@ -177,12 +175,14 @@ const mapAppToDb = (collectionName: string, data: any) => {
         createdAt: data.createdAt || new Date().toISOString(),
         Responsavel: data.assignedTo || '',
         status: data.status || 'Novo',
-        agendamento: data.scheduledDate || '', // Garante string vazia se undefined
-        notes: data.notes || '', // Garante string vazia se undefined
+        agendamento: data.scheduledDate || '',
+        notes: data.notes || '',
         usuarioId: data.usuarioId || '',
         closedAt: data.closedAt || '',
         insurerConfirmed: data.insurerConfirmed || false,
-        CartaoPortoNovo: data.cartaoPortoNovo || false
+        CartaoPortoNovo: data.cartaoPortoNovo || false,
+        commissionPaid: data.commissionPaid || false,
+        commissionCP: data.commissionCP || false
     };
 
     if (data.dealInfo) {
@@ -243,11 +243,9 @@ export const subscribeToRenovationsTotal = (callback: (total: number) => void) =
         return () => {};
     }
     try {
-        // Acessa coleção 'totalrenovacoes', documento 'stats'
         const docRef = doc(db, 'totalrenovacoes', 'stats');
         return onSnapshot(docRef, (docSnap: any) => {
             if (docSnap.exists()) {
-                // Lê o campo 'count'
                 callback(docSnap.data().count || 0);
             } else {
                 callback(0);
@@ -286,15 +284,12 @@ export const updateDataInCollection = async (collectionName: string, id: string,
     }
 };
 
-// Atualiza a coleção totalrenovacoes com o novo número
 export const updateTotalRenovacoes = async (newTotal: number) => {
     if (!isFirebaseConfigured || !db) return;
     try {
         const docRef = doc(db, 'totalrenovacoes', 'stats');
-        // Usa setDoc com merge para criar se não existir ou atualizar se existir
         await setDoc(docRef, { count: newTotal }, { merge: true });
     } catch (error) {
         console.error("Erro ao atualizar total de renovações:", error);
     }
 };
-
