@@ -57,6 +57,10 @@ export interface Lead {
   // Atribuição
   assignedAt?: string; // Data de atribuição
 
+  // Controle Financeiro
+  commissionPaid?: boolean;
+  commissionCP?: boolean;
+
   // Dados do Fechamento (Novo)
   dealInfo?: DealInfo;
   
@@ -93,4 +97,3 @@ export const USERS_LIST = [
   "Maria Atendimento",
   "Carlos Vendas"
 ];
-
