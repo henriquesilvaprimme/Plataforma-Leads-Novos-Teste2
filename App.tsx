@@ -88,12 +88,15 @@ export default function App() {
       if (currentPath.includes('leads')) {
           updateDataInCollection('leads', updatedLead.id, updatedLead);
       } else if (currentPath.includes('renovacoes') || currentPath.includes('renovacoes-perdidas') || currentPath.includes('segurados')) {
-          // Atualiza na coleção de renovações, seja da aba normal ou da aba de perdidas
           updateDataInCollection('renovacoes', updatedLead.id, updatedLead);
       } else if (currentPath.includes('renovados')) {
           updateDataInCollection('renovados', updatedLead.id, updatedLead);
+      } else if (currentPath.includes('relatorios')) {
+          // No relatório, verificamos em qual coleção o lead originalmente reside
+          if (leadsCollection.find(l => l.id === updatedLead.id)) updateDataInCollection('leads', updatedLead.id, updatedLead);
+          else if (renewedCollection.find(l => l.id === updatedLead.id)) updateDataInCollection('renovados', updatedLead.id, updatedLead);
+          else if (renewalsCollection.find(l => l.id === updatedLead.id)) updateDataInCollection('renovacoes', updatedLead.id, updatedLead);
       } else {
-          // Fallback search across collections
           if (leadsCollection.find(l => l.id === updatedLead.id)) updateDataInCollection('leads', updatedLead.id, updatedLead);
           else if (renewalsCollection.find(l => l.id === updatedLead.id)) updateDataInCollection('renovacoes', updatedLead.id, updatedLead);
           else if (renewedCollection.find(l => l.id === updatedLead.id)) updateDataInCollection('renovados', updatedLead.id, updatedLead);
@@ -111,11 +114,9 @@ export default function App() {
   const isRenovations = !isAdmin && currentUser?.isRenovations;
   const isComum = !isAdmin && !isRenovations;
 
-  // Redirecionamento de segurança se a rota atual não for permitida
   useEffect(() => {
     if (!currentUser) return;
     
-    // Lista de rotas permitidas por perfil
     if (isComum) {
         const allowed = ['/dashboard', '/leads', '/ranking'];
         if (!allowed.some(path => currentPath.startsWith(path)) && currentPath !== '/') {
@@ -130,7 +131,6 @@ export default function App() {
     }
   }, [currentPath, isComum, isRenovations, currentUser, navigate]);
 
-  // LOGIN SCREEN
   if (!currentUser) {
       return <Login users={usersCollection} onLogin={(user) => {
           setCurrentUser(user);
@@ -157,7 +157,7 @@ export default function App() {
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
-          {/* DASHBOARD: Todos veem */}
+          {/* DASHBOARD */}
           <button 
             onClick={() => navigate('/dashboard')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${currentPath.startsWith('/dashboard') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
@@ -166,7 +166,7 @@ export default function App() {
             <span>Dashboard</span>
           </button>
           
-          {/* MEUS LEADS: Admin ou Comum */}
+          {/* MEUS LEADS */}
           {(isAdmin || isComum) && (
             <button 
                 onClick={() => navigate('/leads')}
@@ -177,7 +177,7 @@ export default function App() {
             </button>
           )}
 
-          {/* RENOVAÇÕES: Admin ou Renovações */}
+          {/* RENOVAÇÕES */}
           {(isAdmin || isRenovations) && (
             <>
                 <button 
@@ -198,7 +198,7 @@ export default function App() {
             </>
           )}
 
-          {/* RENOVADOS: Admin ou Renovações */}
+          {/* RENOVADOS */}
           {(isAdmin || isRenovations) && (
             <button 
                 onClick={() => navigate('/renovados')}
@@ -209,7 +209,7 @@ export default function App() {
             </button>
           )}
 
-          {/* SEGURADOS: Admin Apenas */}
+          {/* SEGURADOS */}
           {isAdmin && (
             <button 
                 onClick={() => navigate('/segurados')}
@@ -220,7 +220,7 @@ export default function App() {
             </button>
           )}
 
-          {/* RANKING: Admin ou Comum */}
+          {/* RANKING */}
           {(isAdmin || isComum) && (
             <button 
                 onClick={() => navigate('/ranking')}
@@ -231,7 +231,7 @@ export default function App() {
             </button>
           )}
 
-           {/* RELATÓRIOS: Admin Apenas */}
+           {/* RELATÓRIOS */}
            {isAdmin && (
             <button 
                 onClick={() => navigate('/relatorios')}
@@ -242,7 +242,7 @@ export default function App() {
             </button>
           )}
 
-          {/* USUÁRIOS: Admin Apenas */}
+          {/* USUÁRIOS */}
           {isAdmin && (
             <button 
                 onClick={() => navigate('/usuarios')}
@@ -376,7 +376,12 @@ export default function App() {
                 <Route path="/relatorios" element={
                     isAdmin ? (
                         <div className="h-full">
-                            <Reports leads={leadsCollection} renewed={renewedCollection} renewals={renewalsCollection} />
+                            <Reports 
+                              leads={leadsCollection} 
+                              renewed={renewedCollection} 
+                              renewals={renewalsCollection} 
+                              onUpdateLead={handleUpdateLead}
+                            />
                         </div>
                     ) : <Navigate to="/dashboard" />
                 } />
@@ -393,7 +398,6 @@ export default function App() {
                     ) : <Navigate to="/dashboard" />
                 } />
 
-                {/* Default Redirect */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </div>
